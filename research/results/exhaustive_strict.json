@@ -1,0 +1,68 @@
+{
+ "experiment": "exhaustive_strict",
+ "conventions": "CONVENTIONS.md",
+ "description": "Every configuration in the k x k box (k=1..5) re-run with the strict highway certificate of exhaust.c (heading periodicity, 20-cell margin at every position of the last period, period footprint narrower than the 20-period displacement). Onset histograms must be bit-identical to the default pass; certification steps may be later.",
+ "per_k": {
+  "k1": {
+   "n_configs": 2,
+   "n_certified_strict": 2,
+   "n_cap": 0,
+   "n_boundary": 0,
+   "n_nontraveling": 0,
+   "n_disp_not_pm2_pm2": 0,
+   "max_onset": 9978,
+   "max_certification_step_strict": 12784,
+   "onset_histogram_identical_to_default_pass": true,
+   "all_ok": true
+  },
+  "k2": {
+   "n_configs": 16,
+   "n_certified_strict": 16,
+   "n_cap": 0,
+   "n_boundary": 0,
+   "n_nontraveling": 0,
+   "n_disp_not_pm2_pm2": 0,
+   "max_onset": 11386,
+   "max_certification_step_strict": 14608,
+   "onset_histogram_identical_to_default_pass": true,
+   "all_ok": true
+  },
+  "k3": {
+   "n_configs": 512,
+   "n_certified_strict": 512,
+   "n_cap": 0,
+   "n_boundary": 0,
+   "n_nontraveling": 0,
+   "n_disp_not_pm2_pm2": 0,
+   "max_onset": 43264,
+   "max_certification_step_strict": 46695,
+   "onset_histogram_identical_to_default_pass": true,
+   "all_ok": true
+  },
+  "k4": {
+   "n_configs": 65536,
+   "n_certified_strict": 65536,
+   "n_cap": 0,
+   "n_boundary": 0,
+   "n_nontraveling": 0,
+   "n_disp_not_pm2_pm2": 0,
+   "max_onset": 119673,
+   "max_certification_step_strict": 122921,
+   "onset_histogram_identical_to_default_pass": true,
+   "all_ok": true
+  },
+  "k5": {
+   "n_configs": 33554432,
+   "n_certified_strict": 33554432,
+   "n_cap": 0,
+   "n_boundary": 0,
+   "n_nontraveling": 0,
+   "n_disp_not_pm2_pm2": 0,
+   "max_onset": 233232,
+   "max_certification_step_strict": 236323,
+   "onset_histogram_identical_to_default_pass": true,
+   "all_ok": true
+  }
+ },
+ "all_configurations_strictly_certified": true
+}

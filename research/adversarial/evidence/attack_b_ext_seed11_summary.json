@@ -1,0 +1,16 @@
+{
+ "seed": 11,
+ "budget": 100000000,
+ "evals": 1742445,
+ "lam": 8,
+ "stall": 2000,
+ "start_k5": false,
+ "cap": 50000000,
+ "time_limit_s": 900,
+ "restarts": 522,
+ "best_onset": 206374,
+ "best_genome_hex": "ae2a7401a70987d23b29558dc1ec04353022",
+ "elapsed_s": null,
+ "note": "TERMINATED EARLY (SIGTERM) before its 900 s wall-clock limit; statistics are over the flushed portion of the log only",
+ "n_non_certified": 0
+}

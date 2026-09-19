@@ -1,0 +1,473 @@
+{
+ "experiment": "movie_facts",
+ "conventions": "CONVENTIONS.md",
+ "description": "Exact values the movie displays. Every value was confirmed by an independent verifier (see research/FINDINGS.md); corrected values are used where a verifier corrected a finder.",
+ "onset_step_empty_grid": 9977,
+ "onset_step_empty_grid_alt_reading_periodic_from_step_inclusive": 9978,
+ "period": 104,
+ "displacement_per_period": [
+  -2,
+  -2
+ ],
+ "direction_empty_grid": "-x,-y",
+ "empty_grid_details": {
+  "ant_at_onset": {
+   "x": -15,
+   "y": 10,
+   "dir": "W"
+  },
+  "turns_per_period": {
+   "R": 58,
+   "L": 46
+  },
+  "black_cells_added_per_period": 12,
+  "cells_touched_per_period": 40,
+  "turn_string_104_from_step_9978": "LRLLRRRRLLRLLRRRRLLRRRRLLRLRRRRLRLLLLRRRRLRRLRRRRLLLLRLRRRRLRRRRLLLLRLRRRRLRLLRRLLLLRRLLRRRRLLRRLRLLRLLR",
+  "pre_onset_cells_modified": 1376,
+  "pre_onset_black_cells": 715,
+  "pre_onset_bbox": {
+   "xmin": -19,
+   "xmax": 29,
+   "ymin": -22,
+   "ymax": 22,
+   "width": 49,
+   "height": 45
+  },
+  "max_distance_from_origin_pre_onset": 34.669872,
+  "max_distance_step": 8934,
+  "last_step_reading_pre_onset_cell": 10183,
+  "first_step_outside_pre_onset_bbox_both_coords": 11390,
+  "escape_margin_20_first_reached_step": 12336,
+  "escape_margin_20_permanent_step": 12680,
+  "periods_verified_mismatch_free": {
+   "N_200000": 1826,
+   "N_500000": 4710,
+   "N_2000000_verifier": 19133
+  },
+  "source": "research/results/onset.json"
+ },
+ "exhaustive": {
+  "k1": {
+   "k": 1,
+   "n_configs": 2,
+   "n_highway": 2,
+   "n_cap": 0,
+   "max_onset": 9978,
+   "min_onset": 9977,
+   "mean_onset": 9977.5,
+   "median_onset": 9977.5,
+   "max_onset_config": {
+    "black_cells": [
+     [
+      0,
+      0
+     ]
+    ],
+    "direction": "+x,-y",
+    "certified_at_step": 12337
+   }
+  },
+  "k2": {
+   "k": 2,
+   "n_configs": 16,
+   "n_highway": 16,
+   "n_cap": 0,
+   "max_onset": 11386,
+   "min_onset": 275,
+   "mean_onset": 7234.0625,
+   "median_onset": 9976.5,
+   "max_onset_config": {
+    "black_cells": [
+     [
+      0,
+      -1
+     ],
+     [
+      -1,
+      0
+     ],
+     [
+      0,
+      0
+     ]
+    ],
+    "direction": "-x,+y",
+    "certified_at_step": 14161
+   }
+  },
+  "k3": {
+   "k": 3,
+   "n_configs": 512,
+   "n_highway": 512,
+   "n_cap": 0,
+   "max_onset": 43264,
+   "min_onset": 200,
+   "mean_onset": 4327.802734375,
+   "median_onset": 2374.5,
+   "max_onset_config": {
+    "black_cells": [
+     [
+      -1,
+      -1
+     ],
+     [
+      1,
+      -1
+     ],
+     [
+      -1,
+      0
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      -1,
+      1
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "direction": "+x,+y",
+    "certified_at_step": 46248
+   }
+  },
+  "k4": {
+   "k": 4,
+   "n_configs": 65536,
+   "n_highway": 65536,
+   "n_cap": 0,
+   "max_onset": 119673,
+   "min_onset": 155,
+   "mean_onset": 3797.9947204589844,
+   "median_onset": 1736.5,
+   "max_onset_config": {
+    "black_cells": [
+     [
+      -2,
+      -2
+     ],
+     [
+      1,
+      -2
+     ],
+     [
+      0,
+      -1
+     ],
+     [
+      1,
+      -1
+     ],
+     [
+      -2,
+      0
+     ],
+     [
+      -1,
+      0
+     ],
+     [
+      -2,
+      1
+     ],
+     [
+      -1,
+      1
+     ],
+     [
+      0,
+      1
+     ]
+    ],
+    "direction": "+x,+y",
+    "certified_at_step": 122542
+   }
+  },
+  "k5": {
+   "k": 5,
+   "n_configs": 33554432,
+   "n_highway": 33554432,
+   "n_cap": 0,
+   "max_onset": 233232,
+   "min_onset": 32,
+   "mean_onset": 4250.44726395607,
+   "median_onset": 2059.0,
+   "mode_onset": 266,
+   "mode_count": 88090,
+   "max_onset_config": {
+    "cfg_index": 31064692,
+    "black_cells": [
+     [
+      0,
+      -2
+     ],
+     [
+      2,
+      -2
+     ],
+     [
+      -2,
+      -1
+     ],
+     [
+      -1,
+      -1
+     ],
+     [
+      2,
+      -1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      -2,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "n_black": 11,
+    "direction": "+x,-y",
+    "displacement_per_period": [
+     2,
+     -2
+    ],
+    "certified_at_step": 235418,
+    "bbox_at_onset_xmin_ymin_xmax_ymax": [
+     -68,
+     -85,
+     60,
+     50
+    ]
+   },
+   "min_onset_config": {
+    "cfg_index": 17781263,
+    "black_cells": [
+     [
+      -2,
+      -2
+     ],
+     [
+      -1,
+      -2
+     ],
+     [
+      0,
+      -2
+     ],
+     [
+      1,
+      -2
+     ],
+     [
+      2,
+      -1
+     ],
+     [
+      0,
+      0
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      -1,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "n_black": 12,
+    "direction": "-x,+y",
+    "certified_at_step": 2216,
+    "n_configs_with_min_onset": 2,
+    "second_cfg_index": 17781279
+   },
+   "direction_counts": {
+    "+x,+y": 8428157,
+    "+x,-y": 8346625,
+    "-x,+y": 8333103,
+    "-x,-y": 8446547
+   },
+   "total_steps": 216439582470,
+   "wall_seconds_two_processes": 1037,
+   "max_steps_single_run": 235944,
+   "max_abs_coordinate_any_step": 229,
+   "max_abs_final_coordinate": 227
+  },
+  "total_configs_k1_to_k5": 33620498,
+  "total_highway_k1_to_k5": 33620498,
+  "source": "research/results/exhaustive.json"
+ },
+ "random": {
+  "main_sweep": {
+   "total_tested": 400000,
+   "total_highway": 400000,
+   "seed": 20260919,
+   "k_values": [
+    5,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48,
+    64
+   ],
+   "p_values": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+   ],
+   "onset_min": 101,
+   "onset_median": 5767,
+   "onset_mean": 9788.37,
+   "onset_max": 196974,
+   "fraction_faster_than_empty_grid": 0.674,
+   "direction_counts": {
+    "+x,+y": 100245,
+    "+x,-y": 98961,
+    "-x,+y": 100527,
+    "-x,-y": 100267
+   },
+   "max_steps_single_run": 199230,
+   "max_abs_coordinate_any_step": 227,
+   "max_abs_final_coordinate": 224,
+   "longest_config_summary": "k=64, p=0.75, seed 20260919, sample_index 4491, 3121 black cells, onset 196974, direction -x,-y, certified at 199230 (research/results/random_longest.json)"
+  },
+  "total_tested": 4730000,
+  "total_highway": 4730000,
+  "longest_onset": 1323594,
+  "longest_config_summary": "k=512, p=0.5, seed 20260921, sample_index 9269, 130511 black cells, direction +x,-y, certified at step 1337591; regenerate with ./randexp one 512 0.5 20260921 9269 20000000",
+  "median_onset_p05_by_k_main": {
+   "5": 2084.5,
+   "8": 2676.0,
+   "12": 3458.5,
+   "16": 4267.5,
+   "24": 5980.5,
+   "32": 7801.5,
+   "48": 11037.0,
+   "64": 15472.0
+  },
+  "median_onset_p05_by_k_scaling": {
+   "64": 14966.5,
+   "96": 22185.0,
+   "128": 31523.0,
+   "192": 48029.5,
+   "256": 68823.5,
+   "384": 108796.5,
+   "512": 159241.0
+  },
+  "scaling_exponent_median_vs_k_k64_to_512": 1.138,
+  "scaling_exponent_median_vs_nblack": 0.569,
+  "caveat": "total_tested counts draws (runs), not distinct patterns: the 560,000 5x5 draws contain 327,611 distinct patterns and the 560,000 8x8 draws 553,399, so at most about 4,491,000 of the 4,730,000 draws are distinct configurations. Seeds 20260920-22 are the main-sweep RNG stream shifted by 1-3 outputs (seed multiplier equals the splitmix64 increment); all 4,730,000 configurations are distinct valid Bernoulli(p) boxes but the sweeps are not independent replicates.",
+  "source": "research/results/random.json",
+  "fraction_faster_than_empty_grid_all_sweeps": 0.6637924,
+  "fraction_faster_than_empty_grid_note": "main_sweep.fraction_faster_than_empty_grid (0.674) is over the 400,000 main-sweep draws; pooled over all 4,730,000 draws the fraction is 0.664."
+ },
+ "adversarial": {
+  "total_runs": 3484889,
+  "total_distinct_configurations_approx": 2677946,
+  "total_non_certified": 0,
+  "cap_hits": 0,
+  "step_cap": 50000000,
+  "longest_onset": 259274,
+  "longest_config_summary": "Attack D: four greedily chained 2x2 obstacles (16 black cells) at (-63,-45),(-105,-147),(-177,63),(220,-192) [lower-left corners], onset 259274 = 25.99x the empty grid, direction -x,-y, certified at step 276869 (research/adversarial/out/attack_d_final.cfg)",
+  "longest_onset_12x12_box_search": 233232,
+  "best_from_random_starts_12x12": 206374,
+  "obstacle_attack": {
+   "placements": 1512,
+   "hits": 616,
+   "misses": 896,
+   "hits_rebuilt_highway": 616,
+   "extra_chaos_after_contact": {
+    "min": 564,
+    "median": 5012,
+    "mean": 10883,
+    "p90": 26156,
+    "max": 138873
+   },
+   "fraction_hits_faster_than_empty_grid": 0.636,
+   "direction_after_hit": {
+    "+x,-y": 238,
+    "-x,-y": 264,
+    "-x,+y": 85,
+    "+x,+y": 29
+   },
+   "longest_onset": 190600
+  },
+  "structured_seeds": {
+   "n_distinct": 202,
+   "all_highway": true,
+   "longest_non_reference": {
+    "name": "concentric_rings_13",
+    "onset": 43621
+   }
+  },
+  "source": "research/results/adversarial.json"
+ },
+ "longest_onset_found_anywhere": {
+  "onset": 1323594,
+  "where": "random scaling sweep, k=512 p=0.5 seed 20260921 sample 9269, 130511 black cells",
+  "smallest_pattern_record": {
+   "onset": 259274,
+   "n_black": 16,
+   "where": "adversarial Attack D"
+  },
+  "provable_5x5_maximum": {
+   "onset": 233232,
+   "n_black": 11
+  }
+ },
+ "total_runs_all_experiments": 41835387,
+ "total_runs_non_certified": 0,
+ "proven_facts": [
+  "Langton's ant was introduced by Christopher G. Langton, 'Studying artificial life with cellular automata', Physica D 22(1-3):120-149, October 1986 (doi:10.1016/0167-2789(86)90237-X); he called them 'vants' and never wrote '10,000', '104' or 'highway'.",
+  "Theorem (Bunimovich and Troubetzkoy, J. Stat. Phys. 67:289-302, 1992, doi:10.1007/BF01049035): for every initial configuration the ant's trajectory is unbounded. Popularly misnamed the 'Cohen-Kong theorem' (Stewart, Scientific American 271(1):104-107, July 1994); the misattribution is stated by Gale, Propp, Sutherland and Troubetzkoy, Math. Intelligencer 17(3):48-56, 1995.",
+  "Proof idea: the rule is reversible, so a bounded orbit would be periodic; the visited cell furthest up-and-right flips on every visit, so on alternate visits the ant must exit into a never-visited cell (Stewart 1994, Box 1).",
+  "Theorem (Troubetzkoy, Lewis-Parker lecture, Alabama J. Math. 21(2), 1997; cited by Gajardo et al. 2002 and Etse 2026): the set of cells exited infinitely often has no corner.",
+  "Theorem (Gajardo, Moreira, Goles, Discrete Applied Mathematics 117:41-50, 2002, doi:10.1016/S0166-218X(00)00334-6): a single ant on a finite configuration can evaluate any boolean circuit, so predicting it is P-hard; universality holds only with an infinite periodic configuration.",
+  "Theorem (Gale, Propp, Sutherland, Troubetzkoy 1995): generalized ants whose rule string has the even run-length property (e.g. LRRL, LLRR) return to bilateral symmetry for ever and never build a highway.",
+  "Theorem (Etse, arXiv:2606.26677, June 2026): the ant escapes any n x n domain within (n+1)! steps; exact confinement maxima S(n,n) = 1, 6, 17, 46, 85, 164, 262, 488, 679 for n = 1..9.",
+  "The highway has period 104 and drift (+-2,+-2) per period, speed sqrt(2)/52 (Boon, J. Stat. Phys. 102:355-360, 2001); the exact empty-grid onset 9977 is recorded in OEIS A261990 and Tokarz arXiv:1807.08789 and agrees with this repo with zero mismatches.",
+  "The highway conjecture (Gajardo et al. 2002: 'For any initial configuration with finite support, the ant eventually starts building the periodic highway, in some unobstructed direction') is OPEN as of June 2026 (Lutfalla arXiv:2505.05426; Gajardo, Lutfalla, Rao, Natural Computing 24:497-509, 2025; Etse arXiv:2606.26677)."
+ ],
+ "open_status": "OPEN. Unboundedness is proven for every initial configuration (Bunimovich-Troubetzkoy 1992), but whether every finite configuration leads to the 104-step highway has never been proven or refuted. Our 41,835,387 simulated runs (every pattern in boxes up to 5x5, 4.73 million random boxes up to 512x512, 3.48 million adversarial runs) all reached a certified highway; this is evidence, not proof."
+}

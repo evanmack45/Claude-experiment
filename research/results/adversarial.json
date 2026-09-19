@@ -1,0 +1,3917 @@
+{
+ "experiment": "adversarial",
+ "conventions": "CONVENTIONS.md",
+ "description": "Adversarial attacks on the Langton's-ant highway conjecture: obstacles on the empty-grid highway (A), evolutionary search for the longest onset in the 12x12 box (B), hand-designed structured seeds (C), and greedy obstacle chaining in a bounded box (D). Every run uses the certified highway detection of CONVENTIONS.md.",
+ "parameters": {
+  "simulator": "research/adversarial/antsim.c (gcc -O3 -march=native); ./antsim run <cfg> | ./antsim batch",
+  "step_cap": 50000000,
+  "grid": "8192x8192 byte grid, origin at (4096,4096); reaching the outer ring is reported as outcome=boundary (never wrapped)",
+  "period": 104,
+  "onset_step_definition": "s = max{k>=1 : t[k] != t[k+104]} (0 if no mismatch); t[k]=R iff step k turned right (cell white); equivalently the smallest s with t[k]==t[k+104] for all k>=s+1",
+  "certification": "at step n >= s+2184: t[k]==t[k+104] verified for all k in s+1..n-104 (>=20 full periods) AND ant >= 20 cells beyond the bbox of {origin, initial black cells, cells modified in steps 1..s} in both coordinates in the travel direction (sign of pos(n)-pos(n-104), both nonzero). Identical to research/exhaustive and research/random.",
+  "cross_checks": "antsim reproduces onset.json (9977), exhaustive.json k=1..5 maxima (9978, 43264, 233232) and verify_py.py (independent pure Python) agrees on every configuration it was run on",
+  "empty_grid_onset": 9977,
+  "attack_A": {
+   "shapes": [
+    "1x1",
+    "2x2",
+    "3x3",
+    "hline5",
+    "vline5",
+    "L3"
+   ],
+   "distances_periods_ahead_of_escape_point": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    13,
+    21,
+    34,
+    55,
+    89,
+    144,
+    233,
+    377
+   ],
+   "lateral_offsets_along_1_minus1": [
+    -8,
+    -6,
+    -4,
+    -2,
+    0,
+    2,
+    4,
+    6,
+    8
+   ],
+   "phases": [
+    0,
+    1
+   ],
+   "placement": "anchor = P0 + m*(-2,-2) + dv*(1,-1) - ph*(1,1), P0 = ant position after step 12680 (first period start after the escape margin becomes permanent) = [-66, -42]; obstacle placed with its lower-left cell at the anchor on an otherwise EMPTY grid and simulated from scratch"
+  },
+  "attack_B": {
+   "box": "12x12, x,y in -6..5",
+   "algorithm": "(1+lambda) hill-climb, mutation flips r cells with r uniform in {1,2,3}, child accepted if onset >= parent, restart from random density U(0.2,0.8) after `stall` evaluations without strict improvement; objective = onset (non-certified = 1e18)",
+   "main_run": {
+    "total_evaluations": 20000,
+    "processes": 2,
+    "seeds": [
+     1,
+     2
+    ],
+    "lam": 4,
+    "stall": 600,
+    "note": "seed 2 first restart starts from the k=5 exhaustive maximum (233232); seed 1 purely random"
+   },
+   "extended_run": {
+    "total_evaluations": 3463028,
+    "processes": 2,
+    "seeds": [
+     11,
+     12
+    ],
+    "lam": 8,
+    "stall": 2000,
+    "wall_clock_limit_s": 900,
+    "note": "seed 12 first restart starts from the k=5 exhaustive maximum; seed 11 purely random"
+   }
+  },
+  "attack_C": {
+   "n_configs": 203,
+   "families": [
+    "filled_square",
+    "filled_square_large",
+    "hollow_square",
+    "hline",
+    "vline",
+    "diag",
+    "antidiag",
+    "hline_centred",
+    "vline_centred",
+    "diag_centred",
+    "checkerboard",
+    "cross_plus",
+    "cross_x",
+    "single_neighbour",
+    "ring",
+    "diamond",
+    "hollow_diamond",
+    "concentric",
+    "stripes",
+    "reference"
+   ]
+  },
+  "attack_D": {
+   "box_halfwidth": 300,
+   "obstacle": "2x2 block",
+   "candidates_per_stage": "phase i in 0,3,..,102 of one highway period, minimal distance m with the block untouched and inside the box; the candidate with the longest onset is kept"
+  },
+  "cap_rerun_policy": "any non-certified run is re-run with --cap 500000000 --grid 32768 --log-every 10000000 (script rerun_cap.sh); none was needed"
+ },
+ "results": {
+  "total_configurations_simulated": 3484889,
+  "total_non_certified": 0,
+  "non_certified_runs": [],
+  "any_run_hit_cap": false,
+  "overall_longest_onset": {
+   "attack": "D",
+   "onset_step": 259274,
+   "ratio_to_empty_grid": 25.987170492131902,
+   "n_black": 16,
+   "black_cells": [
+    [
+     -63,
+     -45
+    ],
+    [
+     -62,
+     -45
+    ],
+    [
+     -63,
+     -44
+    ],
+    [
+     -62,
+     -44
+    ],
+    [
+     -105,
+     -147
+    ],
+    [
+     -104,
+     -147
+    ],
+    [
+     -105,
+     -146
+    ],
+    [
+     -104,
+     -146
+    ],
+    [
+     -177,
+     63
+    ],
+    [
+     -176,
+     63
+    ],
+    [
+     -177,
+     64
+    ],
+    [
+     -176,
+     64
+    ],
+    [
+     220,
+     -192
+    ],
+    [
+     221,
+     -192
+    ],
+    [
+     220,
+     -191
+    ],
+    [
+     221,
+     -191
+    ]
+   ]
+  },
+  "longest_onset_bounded_12x12_box": {
+   "onset_step": 233232,
+   "ratio_to_empty_grid": 23.376967024155558,
+   "black_cells": [
+    [
+     0,
+     -2
+    ],
+    [
+     2,
+     -2
+    ],
+    [
+     -2,
+     -1
+    ],
+    [
+     -1,
+     -1
+    ],
+    [
+     2,
+     -1
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     -2,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "direction": "+x,-y",
+   "found_in_run": "ext_seed12",
+   "file": "research/results/adversarial_best.json"
+  },
+  "attack_A": {
+   "empty_grid_onset": 9977,
+   "highway_period_start_after_escape": {
+    "step": 12680,
+    "pos": [
+     -66,
+     -42
+    ]
+   },
+   "disp_per_period": [
+    -2,
+    -2
+   ],
+   "strip_perpendicular_range_v_eq_x_minus_y": [
+    -28,
+    -18
+   ],
+   "pre_onset_bbox": [
+    -19,
+    -22,
+    29,
+    22
+   ],
+   "n_placements": 1512,
+   "shapes": [
+    "1x1",
+    "2x2",
+    "3x3",
+    "hline5",
+    "vline5",
+    "L3"
+   ],
+   "distances_periods": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    13,
+    21,
+    34,
+    55,
+    89,
+    144,
+    233,
+    377
+   ],
+   "lateral_offsets": [
+    -8,
+    -6,
+    -4,
+    -2,
+    0,
+    2,
+    4,
+    6,
+    8
+   ],
+   "phases": [
+    0,
+    1
+   ],
+   "outcome_counts": {
+    "certified": 1512
+   },
+   "n_obstacle_hit": 616,
+   "n_obstacle_missed": 896,
+   "all_missed_have_onset_9977": true,
+   "missed_onsets": [
+    9977
+   ],
+   "all_hit_reformed_highway": true,
+   "direction_counts_after_hit": {
+    "+x,-y": 238,
+    "-x,+y": 85,
+    "-x,-y": 264,
+    "+x,+y": 29
+   },
+   "onset_hit": {
+    "n": 616,
+    "min": 13075,
+    "max": 190600,
+    "mean": 30690.474025974025,
+    "median": 25326.0,
+    "p10": 14304,
+    "p25": 17172,
+    "p75": 37755,
+    "p90": 54085,
+    "p99": 103362
+   },
+   "extra_chaos_hit": {
+    "n": 616,
+    "min": 564,
+    "max": 138873,
+    "mean": 10882.694805194806,
+    "median": 5012.0,
+    "p10": 707,
+    "p25": 1794,
+    "p75": 14459,
+    "p90": 26156,
+    "p99": 64825
+   },
+   "contact_step_hit": {
+    "n": 616,
+    "min": 12416,
+    "max": 51815,
+    "mean": 19807.77922077922,
+    "median": 14279.5,
+    "p10": 12593,
+    "p25": 12814,
+    "p75": 21757,
+    "p90": 36735,
+    "p99": 51771
+   },
+   "frac_hit_with_extra_chaos_below_9977": 0.6363636363636364,
+   "per_shape": {
+    "1x1": {
+     "n_hit": 84,
+     "extra_chaos": {
+      "n": 84,
+      "min": 564,
+      "max": 32396,
+      "mean": 8876,
+      "median": 3599.5,
+      "p10": 564,
+      "p25": 614,
+      "p75": 12483,
+      "p90": 32396,
+      "p99": 32396
+     },
+     "onset": {
+      "n": 84,
+      "min": 13095,
+      "max": 84139,
+      "mean": 28749.14285714286,
+      "median": 23740.5,
+      "p10": 13615,
+      "p25": 16416,
+      "p75": 40469,
+      "p90": 52303,
+      "p99": 84139
+     }
+    },
+    "2x2": {
+     "n_hit": 84,
+     "extra_chaos": {
+      "n": 84,
+      "min": 707,
+      "max": 8841,
+      "mean": 2828.1666666666665,
+      "median": 911.5,
+      "p10": 707,
+      "p25": 809,
+      "p75": 4789,
+      "p90": 8841,
+      "p99": 8841
+     },
+     "onset": {
+      "n": 84,
+      "min": 13227,
+      "max": 60480,
+      "mean": 22646.14285714286,
+      "median": 18473.0,
+      "p10": 13519,
+      "p25": 14143,
+      "p75": 26637,
+      "p90": 37704,
+      "p99": 60480
+     }
+    },
+    "3x3": {
+     "n_hit": 112,
+     "extra_chaos": {
+      "n": 112,
+      "min": 588,
+      "max": 51728,
+      "mean": 8793.392857142857,
+      "median": 6763.5,
+      "p10": 588,
+      "p25": 3443,
+      "p75": 12849,
+      "p90": 18949,
+      "p99": 36752
+     },
+     "onset": {
+      "n": 112,
+      "min": 13090,
+      "max": 103362,
+      "mean": 28572.035714285714,
+      "median": 25373.0,
+      "p10": 14411,
+      "p25": 16902,
+      "p75": 32864,
+      "p90": 49512,
+      "p99": 73410
+     }
+    },
+    "hline5": {
+     "n_hit": 112,
+     "extra_chaos": {
+      "n": 112,
+      "min": 658,
+      "max": 59560,
+      "mean": 8452.142857142857,
+      "median": 3788.5,
+      "p10": 658,
+      "p25": 1794,
+      "p75": 17972,
+      "p90": 20560,
+      "p99": 44584
+     },
+     "onset": {
+      "n": 112,
+      "min": 13075,
+      "max": 111257,
+      "mean": 28227.785714285714,
+      "median": 23767.0,
+      "p10": 14202,
+      "p25": 15709,
+      "p75": 33933,
+      "p90": 51353,
+      "p99": 81305
+     }
+    },
+    "vline5": {
+     "n_hit": 112,
+     "extra_chaos": {
+      "n": 112,
+      "min": 1665,
+      "max": 64532,
+      "mean": 12503.392857142857,
+      "median": 9174.0,
+      "p10": 1665,
+      "p25": 4566,
+      "p75": 24763,
+      "p90": 25532,
+      "p99": 49556
+     },
+     "onset": {
+      "n": 112,
+      "min": 14105,
+      "max": 116171,
+      "mean": 32308.410714285714,
+      "median": 27609.0,
+      "p10": 16289,
+      "p25": 18768,
+      "p75": 39540,
+      "p90": 53313,
+      "p99": 86219
+     }
+    },
+    "L3": {
+     "n_hit": 112,
+     "extra_chaos": {
+      "n": 112,
+      "min": 2094,
+      "max": 138873,
+      "mean": 21327.76785714286,
+      "median": 11967.0,
+      "p10": 2094,
+      "p25": 6051,
+      "p75": 30133,
+      "p90": 60873,
+      "p99": 108921
+     },
+     "onset": {
+      "n": 112,
+      "min": 14535,
+      "max": 190600,
+      "mean": 41142.91071428572,
+      "median": 32985.5,
+      "p10": 17430,
+      "p25": 22012,
+      "p75": 51713,
+      "p90": 75472,
+      "p99": 145672
+     }
+    }
+   },
+   "per_distance": {
+    "0": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 60457,
+      "mean": 9917.272727272728,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 60457
+     }
+    },
+    "1": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 60665,
+      "mean": 9678.727272727272,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 21064,
+      "p99": 60665
+     }
+    },
+    "2": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 60873,
+      "mean": 9920.84090909091,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 60873
+     }
+    },
+    "3": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 61081,
+      "mean": 10250.295454545454,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 61081
+     }
+    },
+    "5": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 61497,
+      "mean": 9941.568181818182,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 61497
+     }
+    },
+    "8": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 62121,
+      "mean": 9984.113636363636,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 62121
+     }
+    },
+    "13": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 63161,
+      "mean": 10055.022727272728,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14459,
+      "p90": 24763,
+      "p99": 63161
+     }
+    },
+    "21": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 64825,
+      "mean": 10168.477272727272,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14704,
+      "p90": 24763,
+      "p99": 64825
+     }
+    },
+    "34": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 67529,
+      "mean": 10352.84090909091,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 24763,
+      "p99": 67529
+     }
+    },
+    "55": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 71897,
+      "mean": 10650.65909090909,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 26402,
+      "p99": 71897
+     }
+    },
+    "89": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 78969,
+      "mean": 11132.84090909091,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 29938,
+      "p99": 78969
+     }
+    },
+    "144": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 90409,
+      "mean": 11912.84090909091,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 32396,
+      "p99": 90409
+     }
+    },
+    "233": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 108921,
+      "mean": 13175.022727272728,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 36752,
+      "p99": 108921
+     }
+    },
+    "377": {
+     "n_hit": 44,
+     "extra_chaos": {
+      "n": 44,
+      "min": 564,
+      "max": 138873,
+      "mean": 15217.204545454546,
+      "median": 5012.0,
+      "p10": 707,
+      "p25": 1794,
+      "p75": 14777,
+      "p90": 51728,
+      "p99": 138873
+     }
+    }
+   },
+   "longest_onset": {
+    "outcome": "certified",
+    "onset_step": 190600,
+    "direction": "-x,-y",
+    "period": 104,
+    "disp": [
+     -2,
+     -2
+    ],
+    "steps_simulated": 192954,
+    "cert_step": 192954,
+    "periods_verified": 21,
+    "cap": 50000000,
+    "grid": 8192,
+    "n_black_init": 5,
+    "first_initial_black_read": 51727,
+    "final_pos": [
+     -925,
+     -837
+    ],
+    "final_dir": "S",
+    "bbox_pre_onset": [
+     -881,
+     -817,
+     29,
+     22
+    ],
+    "bbox_all": [
+     -927,
+     -836,
+     29,
+     22
+    ],
+    "n_black_final": 17843,
+    "n_touched": 33130,
+    "shape": "L3",
+    "periods_ahead": 377,
+    "lateral": 0,
+    "phase": 1,
+    "anchor": [
+     -821,
+     -797
+    ],
+    "cells": [
+     [
+      -821,
+      -797
+     ],
+     [
+      -820,
+      -797
+     ],
+     [
+      -819,
+      -797
+     ],
+     [
+      -821,
+      -796
+     ],
+     [
+      -821,
+      -795
+     ]
+    ],
+    "obstacle_v_in_strip": true,
+    "contact_step": 51727,
+    "extra_chaos": 138873
+   },
+   "longest_extra_chaos": {
+    "outcome": "certified",
+    "onset_step": 190600,
+    "direction": "-x,-y",
+    "period": 104,
+    "disp": [
+     -2,
+     -2
+    ],
+    "steps_simulated": 192954,
+    "cert_step": 192954,
+    "periods_verified": 21,
+    "cap": 50000000,
+    "grid": 8192,
+    "n_black_init": 5,
+    "first_initial_black_read": 51727,
+    "final_pos": [
+     -925,
+     -837
+    ],
+    "final_dir": "S",
+    "bbox_pre_onset": [
+     -881,
+     -817,
+     29,
+     22
+    ],
+    "bbox_all": [
+     -927,
+     -836,
+     29,
+     22
+    ],
+    "n_black_final": 17843,
+    "n_touched": 33130,
+    "shape": "L3",
+    "periods_ahead": 377,
+    "lateral": 0,
+    "phase": 1,
+    "anchor": [
+     -821,
+     -797
+    ],
+    "cells": [
+     [
+      -821,
+      -797
+     ],
+     [
+      -820,
+      -797
+     ],
+     [
+      -819,
+      -797
+     ],
+     [
+      -821,
+      -796
+     ],
+     [
+      -821,
+      -795
+     ]
+    ],
+    "obstacle_v_in_strip": true,
+    "contact_step": 51727,
+    "extra_chaos": 138873
+   },
+   "max_steps_simulated": 192954
+  },
+  "attack_B": {
+   "runs": {
+    "ext_seed11": {
+     "csv": "out/attack_b_ext_seed11.csv",
+     "n_evals": 1742445,
+     "n_non_certified": 0,
+     "onset_max": 206374,
+     "onset_mean": 7156.961244687781,
+     "onset_median": 4530,
+     "p90": 16108,
+     "p99": 39352,
+     "p999": 68310,
+     "n_above_9977": 380935,
+     "n_above_100k": 143,
+     "n_above_200k": 1,
+     "best_eval": 1036283,
+     "best_restart": 311,
+     "best_genome_hex": "ae2a7401a70987d23b29558dc1ec04353022",
+     "best_cells": [
+      [
+       -6,
+       -6
+      ],
+      [
+       -4,
+       -6
+      ],
+      [
+       -2,
+       -6
+      ],
+      [
+       -1,
+       -6
+      ],
+      [
+       0,
+       -6
+      ],
+      [
+       4,
+       -6
+      ],
+      [
+       -6,
+       -5
+      ],
+      [
+       -4,
+       -5
+      ],
+      [
+       -1,
+       -5
+      ],
+      [
+       0,
+       -5
+      ],
+      [
+       1,
+       -5
+      ],
+      [
+       3,
+       -5
+      ],
+      [
+       1,
+       -4
+      ],
+      [
+       2,
+       -4
+      ],
+      [
+       4,
+       -4
+      ],
+      [
+       -5,
+       -3
+      ],
+      [
+       -4,
+       -3
+      ],
+      [
+       -3,
+       -3
+      ],
+      [
+       2,
+       -3
+      ],
+      [
+       5,
+       -3
+      ],
+      [
+       -6,
+       -2
+      ],
+      [
+       -1,
+       -2
+      ],
+      [
+       0,
+       -2
+      ],
+      [
+       1,
+       -2
+      ],
+      [
+       2,
+       -2
+      ],
+      [
+       3,
+       -2
+      ],
+      [
+       5,
+       -2
+      ],
+      [
+       -4,
+       -1
+      ],
+      [
+       0,
+       -1
+      ],
+      [
+       1,
+       -1
+      ],
+      [
+       2,
+       -1
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       5,
+       -1
+      ],
+      [
+       -4,
+       0
+      ],
+      [
+       -2,
+       0
+      ],
+      [
+       1,
+       0
+      ],
+      [
+       3,
+       0
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       -5,
+       1
+      ],
+      [
+       -3,
+       1
+      ],
+      [
+       -2,
+       1
+      ],
+      [
+       2,
+       1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       5,
+       1
+      ],
+      [
+       -6,
+       2
+      ],
+      [
+       -5,
+       2
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       2
+      ],
+      [
+       3,
+       2
+      ],
+      [
+       4,
+       2
+      ],
+      [
+       -6,
+       3
+      ],
+      [
+       -5,
+       3
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       -4,
+       4
+      ],
+      [
+       -3,
+       4
+      ],
+      [
+       -1,
+       4
+      ],
+      [
+       1,
+       4
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       0,
+       5
+      ],
+      [
+       4,
+       5
+      ]
+     ],
+     "restarts": 522,
+     "lam": 8,
+     "stall": 2000,
+     "start_k5": false,
+     "seed": 11,
+     "elapsed_s": null,
+     "time_limit_s": 900
+    },
+    "ext_seed12": {
+     "csv": "out/attack_b_ext_seed12.csv",
+     "n_evals": 1720583,
+     "n_non_certified": 0,
+     "onset_max": 233232,
+     "onset_mean": 7272.418010058219,
+     "onset_median": 4549,
+     "p90": 16370,
+     "p99": 40959,
+     "p999": 71222,
+     "n_above_9977": 379442,
+     "n_above_100k": 199,
+     "n_above_200k": 1,
+     "best_eval": 1,
+     "best_restart": 0,
+     "best_genome_hex": "0000000000000280c80000280b8000000000",
+     "best_cells": [
+      [
+       0,
+       -2
+      ],
+      [
+       2,
+       -2
+      ],
+      [
+       -2,
+       -1
+      ],
+      [
+       -1,
+       -1
+      ],
+      [
+       2,
+       -1
+      ],
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       1
+      ],
+      [
+       -2,
+       2
+      ],
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       2
+      ]
+     ],
+     "restarts": 507,
+     "lam": 8,
+     "stall": 2000,
+     "start_k5": true,
+     "seed": 12,
+     "elapsed_s": null,
+     "time_limit_s": 900
+    },
+    "main_seed1": {
+     "csv": "out/attack_b_main_seed1.csv",
+     "n_evals": 10000,
+     "n_non_certified": 0,
+     "onset_max": 129303,
+     "onset_mean": 6648.7502,
+     "onset_median": 4258.5,
+     "p90": 15257,
+     "p99": 37523,
+     "p999": 63575,
+     "n_above_9977": 1990,
+     "n_above_100k": 1,
+     "n_above_200k": 0,
+     "best_eval": 5295,
+     "best_restart": 5,
+     "best_genome_hex": "ec506f3df0da7f1d8d74c27a9ea7c536b77b",
+     "best_cells": [
+      [
+       -6,
+       -6
+      ],
+      [
+       -5,
+       -6
+      ],
+      [
+       -4,
+       -6
+      ],
+      [
+       -2,
+       -6
+      ],
+      [
+       -1,
+       -6
+      ],
+      [
+       3,
+       -6
+      ],
+      [
+       5,
+       -6
+      ],
+      [
+       -1,
+       -5
+      ],
+      [
+       0,
+       -5
+      ],
+      [
+       2,
+       -5
+      ],
+      [
+       3,
+       -5
+      ],
+      [
+       4,
+       -5
+      ],
+      [
+       5,
+       -5
+      ],
+      [
+       -4,
+       -4
+      ],
+      [
+       -3,
+       -4
+      ],
+      [
+       -2,
+       -4
+      ],
+      [
+       -1,
+       -4
+      ],
+      [
+       1,
+       -4
+      ],
+      [
+       2,
+       -4
+      ],
+      [
+       3,
+       -4
+      ],
+      [
+       4,
+       -4
+      ],
+      [
+       5,
+       -4
+      ],
+      [
+       -2,
+       -3
+      ],
+      [
+       -1,
+       -3
+      ],
+      [
+       1,
+       -3
+      ],
+      [
+       2,
+       -3
+      ],
+      [
+       4,
+       -3
+      ],
+      [
+       -5,
+       -2
+      ],
+      [
+       -4,
+       -2
+      ],
+      [
+       -3,
+       -2
+      ],
+      [
+       -2,
+       -2
+      ],
+      [
+       -1,
+       -2
+      ],
+      [
+       0,
+       -2
+      ],
+      [
+       1,
+       -2
+      ],
+      [
+       5,
+       -2
+      ],
+      [
+       -6,
+       -1
+      ],
+      [
+       -5,
+       -1
+      ],
+      [
+       -3,
+       -1
+      ],
+      [
+       -2,
+       -1
+      ],
+      [
+       2,
+       -1
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       5,
+       -1
+      ],
+      [
+       -5,
+       0
+      ],
+      [
+       -4,
+       0
+      ],
+      [
+       -3,
+       0
+      ],
+      [
+       -1,
+       0
+      ],
+      [
+       2,
+       0
+      ],
+      [
+       3,
+       0
+      ],
+      [
+       -4,
+       1
+      ],
+      [
+       -1,
+       1
+      ],
+      [
+       0,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       -6,
+       2
+      ],
+      [
+       -3,
+       2
+      ],
+      [
+       -2,
+       2
+      ],
+      [
+       -1,
+       2
+      ],
+      [
+       0,
+       2
+      ],
+      [
+       2,
+       2
+      ],
+      [
+       4,
+       2
+      ],
+      [
+       -5,
+       3
+      ],
+      [
+       -4,
+       3
+      ],
+      [
+       -3,
+       3
+      ],
+      [
+       -2,
+       3
+      ],
+      [
+       -1,
+       3
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       5,
+       3
+      ],
+      [
+       -4,
+       4
+      ],
+      [
+       -3,
+       4
+      ],
+      [
+       -1,
+       4
+      ],
+      [
+       0,
+       4
+      ],
+      [
+       2,
+       4
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       -5,
+       5
+      ],
+      [
+       -4,
+       5
+      ],
+      [
+       -3,
+       5
+      ],
+      [
+       -1,
+       5
+      ],
+      [
+       0,
+       5
+      ],
+      [
+       1,
+       5
+      ],
+      [
+       2,
+       5
+      ],
+      [
+       4,
+       5
+      ],
+      [
+       5,
+       5
+      ]
+     ],
+     "restarts": 10,
+     "lam": 4,
+     "stall": 600,
+     "start_k5": false,
+     "seed": 1,
+     "elapsed_s": 1.5265204906463623,
+     "time_limit_s": null
+    },
+    "main_seed2": {
+     "csv": "out/attack_b_main_seed2.csv",
+     "n_evals": 10000,
+     "n_non_certified": 0,
+     "onset_max": 233232,
+     "onset_mean": 7544.1297,
+     "onset_median": 4437.0,
+     "p90": 16831,
+     "p99": 47797,
+     "p999": 96275,
+     "n_above_9977": 2325,
+     "n_above_100k": 5,
+     "n_above_200k": 1,
+     "best_eval": 1,
+     "best_restart": 0,
+     "best_genome_hex": "0000000000000280c80000280b8000000000",
+     "best_cells": [
+      [
+       0,
+       -2
+      ],
+      [
+       2,
+       -2
+      ],
+      [
+       -2,
+       -1
+      ],
+      [
+       -1,
+       -1
+      ],
+      [
+       2,
+       -1
+      ],
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       1
+      ],
+      [
+       -2,
+       2
+      ],
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       2
+      ]
+     ],
+     "restarts": 10,
+     "lam": 4,
+     "stall": 600,
+     "start_k5": true,
+     "seed": 2,
+     "elapsed_s": 1.7034566402435303,
+     "time_limit_s": null
+    }
+   },
+   "best": {
+    "experiment": "adversarial_best",
+    "conventions": "CONVENTIONS.md",
+    "description": "Longest certified highway onset found by the Attack-B evolutionary search over initial configurations in the 12x12 box (x,y in -6..5), ant at (0,0) facing North.",
+    "box": {
+     "k": 12,
+     "xmin": -6,
+     "xmax": 5,
+     "ymin": -6,
+     "ymax": 5
+    },
+    "black_cells": [
+     [
+      0,
+      -2
+     ],
+     [
+      2,
+      -2
+     ],
+     [
+      -2,
+      -1
+     ],
+     [
+      -1,
+      -1
+     ],
+     [
+      2,
+      -1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      -2,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "n_black": 11,
+    "onset_step": 233232,
+    "ratio_to_empty_grid": 23.376967024155558,
+    "direction": "+x,-y",
+    "displacement_per_period": [
+     2,
+     -2
+    ],
+    "period": 104,
+    "certification_step": 235418,
+    "periods_verified_at_certification": 20,
+    "bbox_pre_onset": [
+     -68,
+     -85,
+     60,
+     50
+    ],
+    "final_pos": [
+     97,
+     -105
+    ],
+    "found_in_run": "ext_seed12",
+    "found_at_eval": 1,
+    "genome_hex": "0000000000000280c80000280b8000000000",
+    "python_cross_check": {
+     "script": "verify_py.py",
+     "steps": 237392,
+     "python_onset": 233232,
+     "python_direction": "+x,-y",
+     "agree": true
+    },
+    "main_run_20000_evals_best": {
+     "run": "main_seed2",
+     "onset_step": 233232,
+     "cells": [
+      [
+       0,
+       -2
+      ],
+      [
+       2,
+       -2
+      ],
+      [
+       -2,
+       -1
+      ],
+      [
+       -1,
+       -1
+      ],
+      [
+       2,
+       -1
+      ],
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       1
+      ],
+      [
+       -2,
+       2
+      ],
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       2
+      ]
+     ]
+    },
+    "any_evaluation_hit_cap": false,
+    "reproduce": "cd research/adversarial && ./antsim run out/attack_b_best.cfg   (and python3 verify_py.py out/attack_b_best.cfg 237392)"
+   },
+   "any_evaluation_hit_cap": false,
+   "main_20000_eval_best": {
+    "run": "main_seed2",
+    "onset_step": 233232,
+    "cells": [
+     [
+      0,
+      -2
+     ],
+     [
+      2,
+      -2
+     ],
+     [
+      -2,
+      -1
+     ],
+     [
+      -1,
+      -1
+     ],
+     [
+      2,
+      -1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      -2,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      2
+     ]
+    ]
+   },
+   "observation": "the (1+lambda) climb barely beats random sampling: the onset landscape is chaotic (single-cell flips reshuffle the onset almost completely), the k=5 exhaustive maximum 233232 survived every mutation neighbourhood search around it"
+  },
+  "attack_C": {
+   "n_configs": 203,
+   "outcome_counts": {
+    "certified": 203
+   },
+   "cap_hits": [],
+   "longest": {
+    "name": "best_k5_exhaustive",
+    "onset_step": 233232,
+    "direction": "+x,-y",
+    "cells": [
+     [
+      -2,
+      -1
+     ],
+     [
+      -2,
+      2
+     ],
+     [
+      -1,
+      -1
+     ],
+     [
+      0,
+      -2
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      -2
+     ],
+     [
+      2,
+      -1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ]
+    ]
+   },
+   "top10": [
+    {
+     "name": "best_k5_exhaustive",
+     "onset_step": 233232,
+     "direction": "+x,-y"
+    },
+    {
+     "name": "best_k4_exhaustive",
+     "onset_step": 119673,
+     "direction": "+x,+y"
+    },
+    {
+     "name": "concentric_rings_13",
+     "onset_step": 43621,
+     "direction": "-x,+y"
+    },
+    {
+     "name": "filled_square_30",
+     "onset_step": 31493,
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diamond_5",
+     "onset_step": 30055,
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_21",
+     "onset_step": 24928,
+     "direction": "-x,-y"
+    },
+    {
+     "name": "vline_12",
+     "onset_step": 24802,
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_27",
+     "onset_step": 22538,
+     "direction": "-x,-y"
+    },
+    {
+     "name": "filled_square_4",
+     "onset_step": 22116,
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hollow_square_4",
+     "onset_step": 22112,
+     "direction": "-x,-y"
+    }
+   ],
+   "per_family": {
+    "filled_square": {
+     "n": 11,
+     "max_onset": 22116,
+     "max_name": "filled_square_4",
+     "min_onset": 709
+    },
+    "filled_square_large": {
+     "n": 4,
+     "max_onset": 31493,
+     "max_name": "filled_square_30",
+     "min_onset": 4956
+    },
+    "hollow_square": {
+     "n": 12,
+     "max_onset": 22112,
+     "max_name": "hollow_square_4",
+     "min_onset": 938
+    },
+    "hline": {
+     "n": 29,
+     "max_onset": 5130,
+     "max_name": "hline_5",
+     "min_onset": 598
+    },
+    "vline": {
+     "n": 29,
+     "max_onset": 24928,
+     "max_name": "vline_21",
+     "min_onset": 723
+    },
+    "diag": {
+     "n": 29,
+     "max_onset": 9958,
+     "max_name": "diag_6",
+     "min_onset": 509
+    },
+    "antidiag": {
+     "n": 29,
+     "max_onset": 1863,
+     "max_name": "antidiag_30",
+     "min_onset": 629
+    },
+    "hline_centred": {
+     "n": 4,
+     "max_onset": 7238,
+     "max_name": "hline_centred_21",
+     "min_onset": 2162
+    },
+    "vline_centred": {
+     "n": 4,
+     "max_onset": 9035,
+     "max_name": "vline_centred_31",
+     "min_onset": 684
+    },
+    "diag_centred": {
+     "n": 4,
+     "max_onset": 11449,
+     "max_name": "diag_centred_31",
+     "min_onset": 497
+    },
+    "checkerboard": {
+     "n": 10,
+     "max_onset": 2428,
+     "max_name": "checkerboard_6_par0",
+     "min_onset": 298
+    },
+    "cross_plus": {
+     "n": 4,
+     "max_onset": 17951,
+     "max_name": "plus_21",
+     "min_onset": 750
+    },
+    "cross_x": {
+     "n": 4,
+     "max_onset": 21924,
+     "max_name": "xcross_9",
+     "min_onset": 1989
+    },
+    "single_neighbour": {
+     "n": 9,
+     "max_onset": 19375,
+     "max_name": "single_1_-1",
+     "min_onset": 671
+    },
+    "ring": {
+     "n": 1,
+     "max_onset": 1681,
+     "max_name": "ring8",
+     "min_onset": 1681
+    },
+    "diamond": {
+     "n": 4,
+     "max_onset": 30055,
+     "max_name": "diamond_5",
+     "min_onset": 391
+    },
+    "hollow_diamond": {
+     "n": 3,
+     "max_onset": 2745,
+     "max_name": "hollow_diamond_7",
+     "min_onset": 273
+    },
+    "concentric": {
+     "n": 3,
+     "max_onset": 43621,
+     "max_name": "concentric_rings_13",
+     "min_onset": 616
+    },
+    "stripes": {
+     "n": 6,
+     "max_onset": 10614,
+     "max_name": "stripes_v_8",
+     "min_onset": 1490
+    },
+    "reference": {
+     "n": 4,
+     "max_onset": 233232,
+     "max_name": "best_k5_exhaustive",
+     "min_onset": 3634
+    }
+   },
+   "table": [
+    {
+     "name": "filled_square_2",
+     "n_cells": 4,
+     "onset_step": 9981,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "filled_square_3",
+     "n_cells": 9,
+     "onset_step": 1714,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "filled_square_4",
+     "n_cells": 16,
+     "onset_step": 22116,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "filled_square_5",
+     "n_cells": 25,
+     "onset_step": 3457,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "filled_square_6",
+     "n_cells": 36,
+     "onset_step": 2764,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "filled_square_7",
+     "n_cells": 49,
+     "onset_step": 5818,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "filled_square_8",
+     "n_cells": 64,
+     "onset_step": 1471,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "filled_square_9",
+     "n_cells": 81,
+     "onset_step": 709,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "filled_square_10",
+     "n_cells": 100,
+     "onset_step": 1772,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "filled_square_11",
+     "n_cells": 121,
+     "onset_step": 5850,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "filled_square_12",
+     "n_cells": 144,
+     "onset_step": 3602,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "filled_square_16",
+     "n_cells": 256,
+     "onset_step": 4956,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "filled_square_20",
+     "n_cells": 400,
+     "onset_step": 8552,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "filled_square_30",
+     "n_cells": 900,
+     "onset_step": 31493,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "filled_square_50",
+     "n_cells": 2500,
+     "onset_step": 20566,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "hollow_square_3",
+     "n_cells": 8,
+     "onset_step": 1681,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "hollow_square_4",
+     "n_cells": 12,
+     "onset_step": 22112,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hollow_square_5",
+     "n_cells": 16,
+     "onset_step": 4397,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "hollow_square_6",
+     "n_cells": 20,
+     "onset_step": 7402,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hollow_square_7",
+     "n_cells": 24,
+     "onset_step": 1195,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hollow_square_8",
+     "n_cells": 28,
+     "onset_step": 8633,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "hollow_square_9",
+     "n_cells": 32,
+     "onset_step": 938,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "hollow_square_10",
+     "n_cells": 36,
+     "onset_step": 3837,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hollow_square_11",
+     "n_cells": 40,
+     "onset_step": 3965,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "hollow_square_12",
+     "n_cells": 44,
+     "onset_step": 3575,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "hollow_square_20",
+     "n_cells": 76,
+     "onset_step": 4931,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hollow_square_30",
+     "n_cells": 116,
+     "onset_step": 8012,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_2",
+     "n_cells": 2,
+     "onset_step": 4107,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "vline_2",
+     "n_cells": 2,
+     "onset_step": 19376,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_2",
+     "n_cells": 2,
+     "onset_step": 509,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "antidiag_2",
+     "n_cells": 2,
+     "onset_step": 1618,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_3",
+     "n_cells": 3,
+     "onset_step": 726,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "vline_3",
+     "n_cells": 3,
+     "onset_step": 2475,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_3",
+     "n_cells": 3,
+     "onset_step": 3793,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "antidiag_3",
+     "n_cells": 3,
+     "onset_step": 684,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_4",
+     "n_cells": 4,
+     "onset_step": 598,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_4",
+     "n_cells": 4,
+     "onset_step": 2311,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_4",
+     "n_cells": 4,
+     "onset_step": 1951,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_4",
+     "n_cells": 4,
+     "onset_step": 629,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hline_5",
+     "n_cells": 5,
+     "onset_step": 5130,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_5",
+     "n_cells": 5,
+     "onset_step": 8779,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_5",
+     "n_cells": 5,
+     "onset_step": 5106,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_5",
+     "n_cells": 5,
+     "onset_step": 1649,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_6",
+     "n_cells": 6,
+     "onset_step": 753,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_6",
+     "n_cells": 6,
+     "onset_step": 2931,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_6",
+     "n_cells": 6,
+     "onset_step": 9958,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "antidiag_6",
+     "n_cells": 6,
+     "onset_step": 1623,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_7",
+     "n_cells": 7,
+     "onset_step": 676,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_7",
+     "n_cells": 7,
+     "onset_step": 723,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_7",
+     "n_cells": 7,
+     "onset_step": 3467,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_7",
+     "n_cells": 7,
+     "onset_step": 1633,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_8",
+     "n_cells": 8,
+     "onset_step": 781,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_8",
+     "n_cells": 8,
+     "onset_step": 2354,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diag_8",
+     "n_cells": 8,
+     "onset_step": 3600,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "antidiag_8",
+     "n_cells": 8,
+     "onset_step": 1643,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_9",
+     "n_cells": 9,
+     "onset_step": 740,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_9",
+     "n_cells": 9,
+     "onset_step": 6783,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_9",
+     "n_cells": 9,
+     "onset_step": 2935,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_9",
+     "n_cells": 9,
+     "onset_step": 1653,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_10",
+     "n_cells": 10,
+     "onset_step": 809,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_10",
+     "n_cells": 10,
+     "onset_step": 6780,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "diag_10",
+     "n_cells": 10,
+     "onset_step": 3594,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_10",
+     "n_cells": 10,
+     "onset_step": 1663,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_11",
+     "n_cells": 11,
+     "onset_step": 804,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_11",
+     "n_cells": 11,
+     "onset_step": 2477,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_11",
+     "n_cells": 11,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_11",
+     "n_cells": 11,
+     "onset_step": 1673,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_12",
+     "n_cells": 12,
+     "onset_step": 837,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_12",
+     "n_cells": 12,
+     "onset_step": 24802,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_12",
+     "n_cells": 12,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_12",
+     "n_cells": 12,
+     "onset_step": 1683,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_13",
+     "n_cells": 13,
+     "onset_step": 868,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_13",
+     "n_cells": 13,
+     "onset_step": 2490,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "diag_13",
+     "n_cells": 13,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_13",
+     "n_cells": 13,
+     "onset_step": 1693,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_14",
+     "n_cells": 14,
+     "onset_step": 865,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_14",
+     "n_cells": 14,
+     "onset_step": 6389,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diag_14",
+     "n_cells": 14,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_14",
+     "n_cells": 14,
+     "onset_step": 1703,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_15",
+     "n_cells": 15,
+     "onset_step": 932,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_15",
+     "n_cells": 15,
+     "onset_step": 8718,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_15",
+     "n_cells": 15,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_15",
+     "n_cells": 15,
+     "onset_step": 1713,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_16",
+     "n_cells": 16,
+     "onset_step": 893,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_16",
+     "n_cells": 16,
+     "onset_step": 2813,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diag_16",
+     "n_cells": 16,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_16",
+     "n_cells": 16,
+     "onset_step": 1723,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_17",
+     "n_cells": 17,
+     "onset_step": 996,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_17",
+     "n_cells": 17,
+     "onset_step": 15912,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diag_17",
+     "n_cells": 17,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_17",
+     "n_cells": 17,
+     "onset_step": 1733,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_18",
+     "n_cells": 18,
+     "onset_step": 921,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_18",
+     "n_cells": 18,
+     "onset_step": 8080,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_18",
+     "n_cells": 18,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_18",
+     "n_cells": 18,
+     "onset_step": 1743,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_19",
+     "n_cells": 19,
+     "onset_step": 1060,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_19",
+     "n_cells": 19,
+     "onset_step": 11826,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "diag_19",
+     "n_cells": 19,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_19",
+     "n_cells": 19,
+     "onset_step": 1753,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_20",
+     "n_cells": 20,
+     "onset_step": 949,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_20",
+     "n_cells": 20,
+     "onset_step": 8208,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_20",
+     "n_cells": 20,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_20",
+     "n_cells": 20,
+     "onset_step": 1763,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_21",
+     "n_cells": 21,
+     "onset_step": 1124,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_21",
+     "n_cells": 21,
+     "onset_step": 24928,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_21",
+     "n_cells": 21,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_21",
+     "n_cells": 21,
+     "onset_step": 1773,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_22",
+     "n_cells": 22,
+     "onset_step": 977,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_22",
+     "n_cells": 22,
+     "onset_step": 8336,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_22",
+     "n_cells": 22,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_22",
+     "n_cells": 22,
+     "onset_step": 1783,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_23",
+     "n_cells": 23,
+     "onset_step": 1188,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_23",
+     "n_cells": 23,
+     "onset_step": 11248,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "diag_23",
+     "n_cells": 23,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_23",
+     "n_cells": 23,
+     "onset_step": 1793,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_24",
+     "n_cells": 24,
+     "onset_step": 1005,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_24",
+     "n_cells": 24,
+     "onset_step": 8464,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_24",
+     "n_cells": 24,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_24",
+     "n_cells": 24,
+     "onset_step": 1803,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_25",
+     "n_cells": 25,
+     "onset_step": 1252,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_25",
+     "n_cells": 25,
+     "onset_step": 9819,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_25",
+     "n_cells": 25,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_25",
+     "n_cells": 25,
+     "onset_step": 1813,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_26",
+     "n_cells": 26,
+     "onset_step": 1033,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_26",
+     "n_cells": 26,
+     "onset_step": 8592,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_26",
+     "n_cells": 26,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_26",
+     "n_cells": 26,
+     "onset_step": 1823,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_27",
+     "n_cells": 27,
+     "onset_step": 1316,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_27",
+     "n_cells": 27,
+     "onset_step": 22538,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_27",
+     "n_cells": 27,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_27",
+     "n_cells": 27,
+     "onset_step": 1833,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_28",
+     "n_cells": 28,
+     "onset_step": 1061,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_28",
+     "n_cells": 28,
+     "onset_step": 8720,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_28",
+     "n_cells": 28,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_28",
+     "n_cells": 28,
+     "onset_step": 1843,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_29",
+     "n_cells": 29,
+     "onset_step": 1380,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_29",
+     "n_cells": 29,
+     "onset_step": 18124,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_29",
+     "n_cells": 29,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_29",
+     "n_cells": 29,
+     "onset_step": 1853,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_30",
+     "n_cells": 30,
+     "onset_step": 1089,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_30",
+     "n_cells": 30,
+     "onset_step": 8848,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diag_30",
+     "n_cells": 30,
+     "onset_step": 3586,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "antidiag_30",
+     "n_cells": 30,
+     "onset_step": 1863,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hline_centred_5",
+     "n_cells": 5,
+     "onset_step": 2162,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "vline_centred_5",
+     "n_cells": 5,
+     "onset_step": 1534,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_centred_5",
+     "n_cells": 5,
+     "onset_step": 497,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "hline_centred_11",
+     "n_cells": 11,
+     "onset_step": 6576,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_centred_11",
+     "n_cells": 11,
+     "onset_step": 684,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_centred_11",
+     "n_cells": 11,
+     "onset_step": 3633,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hline_centred_21",
+     "n_cells": 21,
+     "onset_step": 7238,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "vline_centred_21",
+     "n_cells": 21,
+     "onset_step": 844,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "diag_centred_21",
+     "n_cells": 21,
+     "onset_step": 8218,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hline_centred_31",
+     "n_cells": 31,
+     "onset_step": 4553,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "vline_centred_31",
+     "n_cells": 31,
+     "onset_step": 9035,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diag_centred_31",
+     "n_cells": 31,
+     "onset_step": 11449,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "checkerboard_4_par0",
+     "n_cells": 8,
+     "onset_step": 298,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "checkerboard_4_par1",
+     "n_cells": 8,
+     "onset_step": 625,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "checkerboard_6_par0",
+     "n_cells": 18,
+     "onset_step": 2428,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "checkerboard_6_par1",
+     "n_cells": 18,
+     "onset_step": 651,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "checkerboard_8_par0",
+     "n_cells": 32,
+     "onset_step": 1034,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "checkerboard_8_par1",
+     "n_cells": 32,
+     "onset_step": 1009,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "checkerboard_12_par0",
+     "n_cells": 72,
+     "onset_step": 926,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "checkerboard_12_par1",
+     "n_cells": 72,
+     "onset_step": 1961,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "checkerboard_16_par0",
+     "n_cells": 128,
+     "onset_step": 710,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "checkerboard_16_par1",
+     "n_cells": 128,
+     "onset_step": 1077,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "plus_5",
+     "n_cells": 9,
+     "onset_step": 3353,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "xcross_5",
+     "n_cells": 9,
+     "onset_step": 2852,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "plus_9",
+     "n_cells": 17,
+     "onset_step": 750,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "xcross_9",
+     "n_cells": 17,
+     "onset_step": 21924,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "plus_13",
+     "n_cells": 25,
+     "onset_step": 1059,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "xcross_13",
+     "n_cells": 25,
+     "onset_step": 1989,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "plus_21",
+     "n_cells": 41,
+     "onset_step": 17951,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "xcross_21",
+     "n_cells": 41,
+     "onset_step": 2657,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "single_-1_-1",
+     "n_cells": 1,
+     "onset_step": 2776,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "single_-1_0",
+     "n_cells": 1,
+     "onset_step": 11384,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "single_-1_1",
+     "n_cells": 1,
+     "onset_step": 671,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "single_0_-1",
+     "n_cells": 1,
+     "onset_step": 9976,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "single_0_1",
+     "n_cells": 1,
+     "onset_step": 1206,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "single_1_-1",
+     "n_cells": 1,
+     "onset_step": 19375,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "single_1_0",
+     "n_cells": 1,
+     "onset_step": 2778,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "single_1_1",
+     "n_cells": 1,
+     "onset_step": 9382,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "single_origin",
+     "n_cells": 1,
+     "onset_step": 9978,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "ring8",
+     "n_cells": 8,
+     "onset_step": 1681,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "diamond_3",
+     "n_cells": 5,
+     "onset_step": 2419,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diamond_5",
+     "n_cells": 13,
+     "onset_step": 30055,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "diamond_7",
+     "n_cells": 25,
+     "onset_step": 447,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "diamond_11",
+     "n_cells": 61,
+     "onset_step": 391,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hollow_diamond_3",
+     "n_cells": 4,
+     "onset_step": 2487,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "hollow_diamond_5",
+     "n_cells": 8,
+     "onset_step": 273,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "hollow_diamond_7",
+     "n_cells": 12,
+     "onset_step": 2745,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "concentric_rings_5",
+     "n_cells": 17,
+     "onset_step": 616,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "concentric_rings_9",
+     "n_cells": 49,
+     "onset_step": 2461,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "concentric_rings_13",
+     "n_cells": 97,
+     "onset_step": 43621,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "stripes_h_4",
+     "n_cells": 8,
+     "onset_step": 9785,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "stripes_v_4",
+     "n_cells": 8,
+     "onset_step": 2867,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "stripes_h_8",
+     "n_cells": 32,
+     "onset_step": 1490,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "stripes_v_8",
+     "n_cells": 32,
+     "onset_step": 10614,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "stripes_h_12",
+     "n_cells": 72,
+     "onset_step": 2704,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "stripes_v_12",
+     "n_cells": 72,
+     "onset_step": 2064,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    },
+    {
+     "name": "best_k5_exhaustive",
+     "n_cells": 11,
+     "onset_step": 233232,
+     "outcome": "certified",
+     "direction": "+x,-y"
+    },
+    {
+     "name": "best_k4_exhaustive",
+     "n_cells": 9,
+     "onset_step": 119673,
+     "outcome": "certified",
+     "direction": "+x,+y"
+    },
+    {
+     "name": "empty_grid_state_at_onset",
+     "n_cells": 715,
+     "onset_step": 3634,
+     "outcome": "certified",
+     "direction": "-x,+y"
+    },
+    {
+     "name": "empty",
+     "n_cells": 0,
+     "onset_step": 9977,
+     "outcome": "certified",
+     "direction": "-x,-y"
+    }
+   ]
+  },
+  "attack_D": {
+   "box_halfwidth": 300,
+   "n_stages": 4,
+   "n_black": 16,
+   "final_onset": 259274,
+   "ratio_to_empty": 25.987170492131902,
+   "stages": [
+    {
+     "stage": 0,
+     "prev_onset": 9977,
+     "prev_direction": "-x,-y",
+     "prev_cert_step": 12336,
+     "n_candidates": 35,
+     "n_candidates_certified": 35,
+     "n_candidates_noncertified": 0,
+     "candidate_onsets_min": 12686,
+     "candidate_onsets_max": 51033,
+     "chosen_phase": 18,
+     "chosen_periods_ahead": 2,
+     "obstacle": [
+      [
+       -63,
+       -45
+      ],
+      [
+       -62,
+       -45
+      ],
+      [
+       -63,
+       -44
+      ],
+      [
+       -62,
+       -44
+      ]
+     ],
+     "contact_step": 12441,
+     "new_onset": 51033,
+     "new_direction": "-x,-y",
+     "extra_chaos": 38592,
+     "n_black": 4,
+     "elapsed_s": 0.0
+    },
+    {
+     "stage": 1,
+     "prev_onset": 51033,
+     "prev_direction": "-x,-y",
+     "prev_cert_step": 57263,
+     "n_candidates": 35,
+     "n_candidates_certified": 35,
+     "n_candidates_noncertified": 0,
+     "candidate_onsets_min": 57566,
+     "candidate_onsets_max": 145886,
+     "chosen_phase": 75,
+     "chosen_periods_ahead": 2,
+     "obstacle": [
+      [
+       -105,
+       -147
+      ],
+      [
+       -104,
+       -147
+      ],
+      [
+       -105,
+       -146
+      ],
+      [
+       -104,
+       -146
+      ]
+     ],
+     "contact_step": 12441,
+     "new_onset": 145886,
+     "new_direction": "-x,+y",
+     "extra_chaos": 133445,
+     "n_black": 8,
+     "elapsed_s": 0.1
+    },
+    {
+     "stage": 2,
+     "prev_onset": 145886,
+     "prev_direction": "-x,+y",
+     "prev_cert_step": 150372,
+     "n_candidates": 35,
+     "n_candidates_certified": 35,
+     "n_candidates_noncertified": 0,
+     "candidate_onsets_min": 150675,
+     "candidate_onsets_max": 187236,
+     "chosen_phase": 6,
+     "chosen_periods_ahead": 3,
+     "obstacle": [
+      [
+       -177,
+       63
+      ],
+      [
+       -176,
+       63
+      ],
+      [
+       -177,
+       64
+      ],
+      [
+       -176,
+       64
+      ]
+     ],
+     "contact_step": 12441,
+     "new_onset": 187236,
+     "new_direction": "+x,-y",
+     "extra_chaos": 174795,
+     "n_black": 12,
+     "elapsed_s": 0.2
+    },
+    {
+     "stage": 3,
+     "prev_onset": 187236,
+     "prev_direction": "+x,-y",
+     "prev_cert_step": 196298,
+     "n_candidates": 35,
+     "n_candidates_certified": 35,
+     "n_candidates_noncertified": 0,
+     "candidate_onsets_min": 196601,
+     "candidate_onsets_max": 259274,
+     "chosen_phase": 78,
+     "chosen_periods_ahead": 2,
+     "obstacle": [
+      [
+       220,
+       -192
+      ],
+      [
+       221,
+       -192
+      ],
+      [
+       220,
+       -191
+      ],
+      [
+       221,
+       -191
+      ]
+     ],
+     "contact_step": 12441,
+     "new_onset": 259274,
+     "new_direction": "-x,-y",
+     "extra_chaos": 246833,
+     "n_black": 16,
+     "elapsed_s": 0.4
+    },
+    {
+     "stage": 4,
+     "onset_step": 259274,
+     "direction": "-x,-y",
+     "n_black": 16,
+     "note": "highway leaves the box: no candidate placement fits",
+     "cells": [
+      [
+       -63,
+       -45
+      ],
+      [
+       -62,
+       -45
+      ],
+      [
+       -63,
+       -44
+      ],
+      [
+       -62,
+       -44
+      ],
+      [
+       -105,
+       -147
+      ],
+      [
+       -104,
+       -147
+      ],
+      [
+       -105,
+       -146
+      ],
+      [
+       -104,
+       -146
+      ],
+      [
+       -177,
+       63
+      ],
+      [
+       -176,
+       63
+      ],
+      [
+       -177,
+       64
+      ],
+      [
+       -176,
+       64
+      ],
+      [
+       220,
+       -192
+      ],
+      [
+       221,
+       -192
+      ],
+      [
+       220,
+       -191
+      ],
+      [
+       221,
+       -191
+      ]
+     ]
+    }
+   ],
+   "cells": [
+    [
+     -63,
+     -45
+    ],
+    [
+     -62,
+     -45
+    ],
+    [
+     -63,
+     -44
+    ],
+    [
+     -62,
+     -44
+    ],
+    [
+     -105,
+     -147
+    ],
+    [
+     -104,
+     -147
+    ],
+    [
+     -105,
+     -146
+    ],
+    [
+     -104,
+     -146
+    ],
+    [
+     -177,
+     63
+    ],
+    [
+     -176,
+     63
+    ],
+    [
+     -177,
+     64
+    ],
+    [
+     -176,
+     64
+    ],
+    [
+     220,
+     -192
+    ],
+    [
+     221,
+     -192
+    ],
+    [
+     220,
+     -191
+    ],
+    [
+     221,
+     -191
+    ]
+   ],
+   "total_noncertified_candidates": 0,
+   "elapsed_s": 0.5676920413970947
+  },
+  "tool_outcome_branch_sanity_tests": {
+   "cap_5000": {
+    "outcome": "cap",
+    "onset_step": 4896,
+    "direction": "none",
+    "period": 104,
+    "disp": [
+     0,
+     0
+    ],
+    "steps_simulated": 5000,
+    "cert_step": -1,
+    "periods_verified": 0,
+    "cap": 5000,
+    "grid": 8192,
+    "n_black_init": 0,
+    "first_initial_black_read": 0,
+    "final_pos": [
+     2,
+     -10
+    ],
+    "final_dir": "N",
+    "bbox_pre_onset": [
+     -8,
+     -12,
+     22,
+     16
+    ],
+    "bbox_all": [
+     -8,
+     -12,
+     22,
+     16
+    ],
+    "n_black_final": 344,
+    "n_touched": 711
+   },
+   "nontravel_cap_12200": {
+    "outcome": "nontravel",
+    "onset_step": 9977,
+    "direction": "none",
+    "period": 104,
+    "disp": [
+     -2,
+     -2
+    ],
+    "steps_simulated": 12200,
+    "cert_step": -1,
+    "periods_verified": 20,
+    "cap": 12200,
+    "grid": 8192,
+    "n_black_init": 0,
+    "first_initial_black_read": 0,
+    "final_pos": [
+     -60,
+     -34
+    ],
+    "final_dir": "N",
+    "bbox_pre_onset": [
+     -19,
+     -22,
+     29,
+     22
+    ],
+    "bbox_all": [
+     -61,
+     -38,
+     29,
+     22
+    ],
+    "n_black_final": 972,
+    "n_touched": 1846
+   },
+   "boundary_grid_32": {
+    "outcome": "boundary",
+    "onset_step": 1288,
+    "direction": "none",
+    "period": 104,
+    "disp": [
+     0,
+     0
+    ],
+    "steps_simulated": 1393,
+    "cert_step": -1,
+    "periods_verified": 0,
+    "cap": 5000,
+    "grid": 32,
+    "n_black_init": 0,
+    "first_initial_black_read": 0,
+    "final_pos": [
+     15,
+     8
+    ],
+    "final_dir": "E",
+    "bbox_pre_onset": [
+     -8,
+     -6,
+     12,
+     10
+    ],
+    "bbox_all": [
+     -8,
+     -6,
+     14,
+     12
+    ],
+    "n_black_final": 153,
+    "n_touched": 274
+   }
+  }
+ },
+ "notes": [
+  "Every configuration simulated (A: 1512, B: 3483028, C: 203, D: 146) reached a certified 104-periodic highway; no run hit the 50,000,000-step cap, so the 500,000,000-cap re-run policy (step 5) was never triggered.",
+  "Attack A: an obstacle on the highway always throws the ant back into chaos and a new highway always re-forms (616/616 hits, direction re-randomised: see direction_counts_after_hit); onset for a hit = contact step + extra chaos; extra chaos has median ~5k and max ~139k, i.e. the same distribution scale as onsets from random seeds; misses give exactly 9977.",
+  "Onset for an obstacle placed m periods ahead is trivially >= 12680 + 104 m, so \"longest onset\" is unbounded in an unbounded box; the meaningful adversarial numbers are (i) extra chaos after contact and (ii) longest onset in a bounded box (attack B 12x12; attack D |x|,|y|<=300).",
+  "Ambiguity: CONVENTIONS.md defines s as the smallest s with t[k]==t[k+104] for all k>=s+1; the alternative reading \"periodic from step s inclusive\" would add 1 to every onset reported here.",
+  "Non-certified outcome labels: cap (not periodic for 20 periods at the cap), nontravel (periodic but escape margin not yet reached at the cap), boundary (grid edge). All three branches were exercised deliberately on the empty grid with tiny caps/grids (tool_outcome_branch_sanity_tests)."
+ ]
+}

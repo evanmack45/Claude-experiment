@@ -1,0 +1,7 @@
+compile: clean
+ASAN N=10: ==3507==ERROR: AddressSanitizer: SEGV on unknown address 0x503ffffffe98 (pc 0x56125203ed8e bp 0x504000000010 sp 0x7ffec154fdb0 T0) at ant.c:102
+ASAN N=200: clean
+ASAN N=12000: clean
+N=10 turns: RRRRLRRRRL (expected RRRRLRRRRL)
+N=10 traj: 0 0 0;1 0 1;1 -1 2;0 -1 3;0 0 0;-1 0 3;-1 1 0;0 1 1;0 0 2;-1 0 3;-1 -1 2;
+N=200000 rerun: bit-identical to research/onset/out
