@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # The k=5 full run and the k5probe were produced by an OLDER binary (05:41) than
 # the current exhaust.c (05:44).  Re-run the two probe ranges with a fresh build
 # of the current source and compare hist.bin byte-for-byte and the summaries.
