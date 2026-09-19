@@ -164,6 +164,7 @@ class TurnStream:
         self.rng = rng
         self.heads = [None, None]         # float head indices
         self.gain = 0.0
+        self.mult = 1.0                   # current read-head rate multiplier
 
     def _render(self, H: float, rate: float, n: int) -> tuple[np.ndarray, float]:
         idx = np.floor(H + (rate / OSR) * np.arange(n)).astype(np.int64)
@@ -189,22 +190,24 @@ class TurnStream:
         self.heads[hi] = H_end
         return chunk
 
-    def frame(self, step: int | None, gain: float) -> np.ndarray:
-        """192 kHz chunk for one frame. step=None -> voice inactive (fade to 0)."""
+    def frame(self, step: int | None, gain: float, rate_mult: float = 1.0) -> np.ndarray:
+        """192 kHz chunk for one frame. step=None -> voice inactive (fade to 0).  `rate_mult`
+        scales both read-head rates (2.0 = one octave up: 104-periodic data sounds at 440 Hz)."""
         if step is None:
             if self.gain <= 0:
                 return None
             chunk = np.zeros(OSPF)
             if self.heads[0] is not None:
-                c1, _ = self._render(self.heads[0], HEAD_RATE, OSPF)
-                c2, _ = self._render(self.heads[1], HEAD2_RATE, OSPF)
+                c1, _ = self._render(self.heads[0], HEAD_RATE * self.mult, OSPF)
+                c2, _ = self._render(self.heads[1], HEAD2_RATE * self.mult, OSPF)
                 chunk = c1 + db(-9) * c2
             ramp = np.linspace(self.gain, 0.0, OSPF)
             self.gain = 0.0
             self.heads = [None, None]
             return chunk * ramp
-        c1 = self._head_chunk(0, HEAD_RATE, step)
-        c2 = self._head_chunk(1, HEAD2_RATE, step)
+        self.mult = float(rate_mult)
+        c1 = self._head_chunk(0, HEAD_RATE * self.mult, step)
+        c2 = self._head_chunk(1, HEAD2_RATE * self.mult, step)
         ramp = np.linspace(self.gain, gain, OSPF)
         self.gain = gain
         return (c1 + db(-9) * c2) * ramp
@@ -222,7 +225,8 @@ def render_oscillator(frames: list[dict], cache: common.RunCache, seed: int = 20
                 w = cache.turns(rid).astype(np.int8) * 2 - 1
                 voices[rid] = TurnStream(w, rng)
             v = active.get(rid)
-            chunk = voices[rid].frame(int(v["step"]) if v else None, db(v["gain_db"]) if v else 0.0)
+            chunk = voices[rid].frame(int(v["step"]) if v else None, db(v["gain_db"]) if v else 0.0,
+                                      float(v.get("rate_mult", 1.0)) if v else 1.0)
             if chunk is not None:
                 out[i * OSPF: (i + 1) * OSPF] += chunk
     # decimate 4:1 with a box filter, then the 6 kHz lowpass
@@ -626,9 +630,9 @@ def build(timeline: dict, facts_path: str | None = None) -> tuple[np.ndarray, di
 
 def probe_file(path: str) -> str:
     ff = core.ffmpeg_exe()
-    ffprobe = ff.replace("ffmpeg", "ffprobe")
+    ffprobe = core.ffprobe_exe()
     lines = [f"size: {os.path.getsize(path) / 1e6:.2f} MB"]
-    if os.path.exists(ffprobe):
+    if ffprobe:
         out = subprocess.run([ffprobe, "-v", "error", "-show_entries",
                               "stream=codec_name,width,height,r_frame_rate,nb_frames,pix_fmt,sample_rate,channels,bit_rate:format=duration",
                               "-of", "default=noprint_wrappers=1", path], capture_output=True, text=True).stdout

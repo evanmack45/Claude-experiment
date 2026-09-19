@@ -43,10 +43,11 @@ SHOT_TABLE = [
     ("S09", 33.0, 38.0, "scenes_evidence"),
     ("S10", 38.0, 44.0, "scenes_evidence"),
     ("S11", 44.0, 50.0, "scenes_evidence"),
-    ("S12", 50.0, 57.0, "scenes_evidence"),
-    ("S13", 57.0, 62.0, "scenes_evidence"),
-    ("S14", 62.0, 68.0, "scenes_evidence"),
-    ("S15", 68.0, 74.0, "scenes_road"),
+    ("S12", 50.0, common.T_WALLS, "scenes_evidence"),
+    ("WALLS", common.T_WALLS, common.T_S13, "scenes_evidence"),   # Appendix A insert (director's cut), 5.0 s
+    ("S13", common.T_S13, common.T_S14, "scenes_evidence"),
+    ("S14", common.T_S14, common.T_S15, "scenes_evidence"),
+    ("S15", common.T_S15, common.DURATION_S, "scenes_road"),
 ]
 
 

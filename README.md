@@ -2,6 +2,8 @@
 
 **Langton's Ant and the Highway Conjecture: a computational investigation and a short film.**
 
+<p align="center"><img src="movie/poster.png" width="270" alt="Poster frame: the highway erupting from the chaos blob under the words 2 rules. Then THIS happens."></p>
+
 Video: [`movie/langtons_ant.mp4`](movie/langtons_ant.mp4) (1080x1920 vertical, 79 s, H.264 + AAC, works muted).
 Upload text: [`movie/DESCRIPTION.md`](movie/DESCRIPTION.md).
 Full research write-up: [`research/FINDINGS.md`](research/FINDINGS.md).
@@ -35,7 +37,7 @@ escaped the bounding box of everything it ever touched by 20 cells in its direct
 |---|---:|---:|---:|
 | Every pattern in a 1x1, 2x2, 3x3, 4x4 and 5x5 box | 33,620,498 | 33,620,498 | 233,232 steps (11 cells, provably the 5x5 maximum) |
 | Random boxes, 5x5 up to 512x512, densities 0.05 to 0.95 | 4,730,000 | 4,730,000 | 1,323,594 steps (512x512 box, 130,511 black cells) |
-| Adversarial: evolutionary search, 202 structured seeds, 1,512 walls dropped on the road | 3,484,889 | 3,484,889 | 259,274 steps (four 2x2 walls, 16 cells) |
+| Adversarial: evolutionary search, 202 structured seeds, 1,512 walls placed on or beside the road (616 in its path) | 3,484,889 | 3,484,889 | 259,274 steps (four 2x2 walls, 16 cells) |
 | **Total** | **41,835,387** | **41,835,387** | **0 exceptions** |
 
 Other facts the film uses, all verified:

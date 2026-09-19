@@ -39,8 +39,14 @@ from core import Camera, clamp, smoothstep, lerp
 # --------------------------------------------------------------------------
 
 W, H, FPS = 1080, 1920, 30
-DURATION_S = 74.0
-N_FRAMES = int(round(DURATION_S * FPS))  # 2220
+DURATION_S = 79.0                        # 74.0 s cut + the 5.0 s WALLS insert (STORYBOARD Appendix A)
+N_FRAMES = int(round(DURATION_S * FPS))  # 2370
+
+# Absolute start times of the shots whose scene code needs them (render.SHOT_TABLE is the registry).
+T_WALLS, T_S13, T_S14, T_S15 = 57.0, 62.0, 67.0, 73.0
+
+# The small committed form of research/exhaustive/out/k4_records.csv (see make_k4_records_npz.py).
+K4_RECORDS_NPZ = "research/results/exhaustive_k4_records.npz"
 
 SAFE_X0, SAFE_Y0, SAFE_X1, SAFE_Y1 = 80, 240, 960, 1600
 SAFE_CX = 520            # text bands are centred here, NOT on 540
@@ -72,6 +78,8 @@ AGE_FRESH = 1040            # steps: age < 1040 -> amber, else cream (10 periods
 CAP_STEPS_PER_FRAME = 100   # > 100 steps drawn per frame -> 60 % contrast cap
 CAP_BLEND = 0.4             # blend black cells 40 % toward the background
 TRAIL_LEN = 20              # last 20 ant positions
+TRAIL_MAX_PX = 40           # no trail at >= 40 px/cell (the rules demo: the cells themselves show the path)
+TRAIL_FADE_PX = 10          # the trail fades in over 40 -> 30 px/cell (~0.3 s of the S05 zoom) instead of switching on hard
 
 BAND_ALPHA, BAND_RADIUS, BAND_PAD = 0.85, 24, 28
 LINE_SPACING = 1.15
@@ -164,16 +172,23 @@ class Facts:
     adversarial: dict | None
     obstacle: dict | None
     histogram_log_bins: list         # exhaustive["4"].histogram_log_bins
-    longest_onset: int               # {LONGEST_ONSET}
+    longest_onset: int               # {LONGEST_ONSET}: the longest onset found anywhere (S12 secondary line)
     longest_cells: list[tuple[int, int]]
     longest_source: str              # {LONGEST_SOURCE} caption
     longest_origin: str              # 'adversarial' | 'exhaustive' | 'random'
+    longest_box_k: int | None        # box size of the longest-anywhere start (512 for the verified file)
+    stubborn_k: int                  # S12 shows the provably slowest start of the complete k x k sweep (5)
+    stubborn_onset: int              # exhaustive[stubborn_k].max_onset (233,232)
+    stubborn_cells: list[tuple[int, int]]
+    stubborn_n_configs: int          # exhaustive[stubborn_k].n_configs (33,554,432)
+    stubborn_hist: list              # exhaustive[stubborn_k].histogram_log_bins (S12 chart)
     total_tested: int                # {TOTAL_TESTED}
     total_highway: int
     cap_hits: int                    # {CAP_HITS} (0 when no adversarial object)
     show_k5: bool                    # 5x5 side bar allowed?
     mosaic_tiles: list               # STORYBOARD 3.3 rows (cells + cfg index)
     k4_records_csv: str | None
+    k4_records_npz: str | None
 
     # convenience -----------------------------------------------------------
     @property
@@ -183,6 +198,10 @@ class Facts:
     @property
     def longest_onset_fmt(self) -> str:
         return fmt_int(self.longest_onset)
+
+    @property
+    def stubborn_onset_fmt(self) -> str:
+        return fmt_int(self.stubborn_onset)
 
     @property
     def total_tested_fmt(self) -> str:
@@ -226,6 +245,48 @@ MOSAIC_TILES = [
     {"row": 3, "col": 2, "delay": 2.0, "cfg": 6077, "onset": 1000, "dir": "+x,+y",
      "cells": [(-2, -2), (0, -2), (1, -2), (-2, -1), (-1, -1), (1, -1), (-2, 0), (-1, 0), (0, 0), (-2, 1)]},
 ]
+
+
+STUBBORN_K = 5   # S12 plays the provably slowest start of the complete 5x5 sweep (director's cut)
+
+# WALLS insert (Appendix A, director's cut): ONE real placement of research/adversarial/out/attack_a.jsonl
+# (shape 3x3, contact_step > 0, extra_chaos 3,443 = near the median 5,012, the rebuilt highway heads
+# -x,+y - a right angle away from the empty grid's -x,-y road).  The renderer re-simulates the empty grid
+# plus these nine cells, re-derives the contact step and the onset with core.find_onset and asserts both
+# against this record; when the jsonl is present (it is gitignored derived data) the record itself is
+# also checked against the matching line.
+WALLS_PLACEMENT = {
+    "source": "research/adversarial/out/attack_a.jsonl", "shape": "3x3", "anchor": (-108, -84),
+    "cells": [(-108, -84), (-108, -83), (-108, -82), (-107, -84), (-107, -83), (-107, -82),
+              (-106, -84), (-106, -83), (-106, -82)],
+    "contact_step": 14600, "onset_step": 18043, "extra_chaos": 3443, "direction": "-x,+y",
+}
+
+
+# WALLS step schedule (per local frame of the 5.0 s insert): the empty-grid highway at 800 steps/s
+# (Appendix A) reaching the block on the impact frame (+1.0 s: the ant stands on the first block cell it
+# reads, displayed step = contact_step - 1); after the impact the rate doubles every WALLS_DOUBLING
+# frames from 800/30 steps per frame, capped at WALLS_RATE_CAP steps per frame.
+WALLS_DURATION_S = 5.0
+WALLS_T_BLOCK, WALLS_T_IMPACT = 0.1, 1.0   # the block shows from +0.1 s (reviewer V5: 0.9 s on screen before the impact)
+WALLS_PRE_RATE = 800.0 / FPS      # steps per frame before the impact
+WALLS_RATE_CAP = 3000.0           # steps per frame ceiling after the impact
+WALLS_DOUBLING = 20.0             # frames per doubling of the post-impact rate (reaches ~1,670/frame at the cut)
+
+
+def walls_schedule() -> np.ndarray:
+    """Displayed step of the walls run per local frame of the insert."""
+    n = int(round(WALLS_DURATION_S * FPS))
+    f_imp = frame_of(WALLS_T_IMPACT)
+    base = int(WALLS_PLACEMENT["contact_step"]) - 1
+    steps = np.zeros(n, dtype=np.int64)
+    for f in range(0, f_imp + 1):
+        steps[f] = base - int(round(WALLS_PRE_RATE * (f_imp - f)))
+    cum = 0.0
+    for f in range(f_imp + 1, n):
+        cum += min(WALLS_RATE_CAP, WALLS_PRE_RATE * 2.0 ** ((f - f_imp) / WALLS_DOUBLING))
+        steps[f] = base + int(math.floor(cum))
+    return steps
 
 
 # Priority on an exact onset tie between candidates for {LONGEST_ONSET}: an exhaustive
@@ -277,12 +338,15 @@ def adapt_verified_schema(raw: dict) -> dict:
         if "source" in exh:
             mapped["source"] = exh["source"]
         raw["exhaustive"] = mapped
-        e4 = mapped.get("4")
-        if isinstance(e4, dict) and ("histogram_log_bins" not in e4 or "k4_records_csv" not in raw):
-            res4 = _get(_load_results_json(raw, "exhaustive", "research/results/exhaustive.json"), "results.k4")
-            e4.setdefault("histogram_log_bins", res4.get("histogram_log_bins"))
+        need_hist = [k for k in ("4", "5") if isinstance(mapped.get(k), dict) and "histogram_log_bins" not in mapped[k]]
+        if need_hist or "k4_records_csv" not in raw:
+            res = _load_results_json(raw, "exhaustive", "research/results/exhaustive.json")
+            for k in need_hist:
+                mapped[k].setdefault("histogram_log_bins", _get(res, f"results.k{k}").get("histogram_log_bins"))
+            res4 = _get(res, "results.k4")
             if "k4_records_csv" not in raw and "per_config_csv" in res4:
                 raw["k4_records_csv"] = res4["per_config_csv"]
+        raw.setdefault("k4_records_npz", K4_RECORDS_NPZ)
     rnd = raw.get("random")
     if isinstance(rnd, dict):
         if "longest_config" not in rnd and "longest_config_summary" in rnd:
@@ -303,6 +367,10 @@ def adapt_verified_schema(raw: dict) -> dict:
     adv = raw.get("adversarial")
     if isinstance(adv, dict) and "n_tested" not in adv and "total_runs" in adv:
         adv["n_tested"] = adv["total_runs"]
+    # Appendix A `obstacle` object <- adversarial.obstacle_attack (placements / hits / hits_rebuilt_highway)
+    if "obstacle" not in raw and isinstance(adv, dict) and isinstance(adv.get("obstacle_attack"), dict):
+        oa = adv["obstacle_attack"]
+        raw["obstacle"] = dict(oa, n_tested=oa.get("placements"), n_rebuilt=oa.get("hits_rebuilt_highway"))
     return raw
 
 
@@ -367,6 +435,20 @@ def load_facts(path: str) -> Facts:
     if cfg is None:
         raise FactsError(f"movie_facts: missing required field '{cfg_path}' (the {origin} record holds LONGEST_ONSET)")
     longest_cells = _config_cells(cfg, cfg_path)
+    longest_box_k = int(cfg["k"]) if "k" in cfg else (int(cfg["box_k"]) if "box_k" in cfg else None)
+
+    # S12 (director's cut): the provably slowest start of the complete 5x5 sweep, never a partial one.
+    sk = str(STUBBORN_K)
+    es = exhaustive.get(sk)
+    if es is None:
+        raise FactsError(f"movie_facts: missing required field 'exhaustive.{sk}' (S12 needs the complete {sk}x{sk} sweep)")
+    if int(es["n_highway"]) != int(es["n_configs"]) or int(es["cap_hits"]) != 0:
+        raise FactsError(f"movie_facts: exhaustive.{sk} is not a complete certified sweep; S12 cannot call its maximum provable")
+    scfg = _get(raw, f"exhaustive.{sk}.max_onset_config")
+    stubborn_cells = _config_cells(scfg, f"exhaustive.{sk}.max_onset_config")
+    if "n_black" in scfg and int(scfg["n_black"]) != len(stubborn_cells):
+        raise FactsError(f"movie_facts: exhaustive.{sk}.max_onset_config lists {len(stubborn_cells)} cells, n_black={scfg['n_black']}")
+    stubborn_hist = _get(raw, f"exhaustive.{sk}.histogram_log_bins")
 
     # TOTAL_* : section-6 sum (exhaustive boxes are nested and the adversarial count is
     # evaluations, so this counts RUNS - S13 says so); cross-checked against the verified total.
@@ -393,9 +475,12 @@ def load_facts(path: str) -> Facts:
         onset=onset, period=period, displacement=disp, direction=direction,
         exhaustive=exhaustive, random=rnd, adversarial=adv, obstacle=raw.get("obstacle"),
         histogram_log_bins=hist, longest_onset=longest_onset, longest_cells=longest_cells,
-        longest_source=source, longest_origin=origin, total_tested=total_tested,
+        longest_source=source, longest_origin=origin, longest_box_k=longest_box_k,
+        stubborn_k=STUBBORN_K, stubborn_onset=int(es["max_onset"]), stubborn_cells=stubborn_cells,
+        stubborn_n_configs=int(es["n_configs"]), stubborn_hist=stubborn_hist,
+        total_tested=total_tested,
         total_highway=total_highway, cap_hits=cap_hits, show_k5=show_k5, mosaic_tiles=tiles,
-        k4_records_csv=raw.get("k4_records_csv"),
+        k4_records_csv=raw.get("k4_records_csv"), k4_records_npz=raw.get("k4_records_npz"),
     )
 
 
@@ -408,30 +493,43 @@ K4_RECORDS_REGEN = ("cd research/exhaustive && gcc -O3 -march=native -o exhaust 
                     "mkdir -p out && ./exhaust 4 0 65536 5000000 out/k4 1")
 
 
-def load_k4_records(path: str) -> dict:
-    """Read research/exhaustive/out/k4_records.csv -> {'cfg', 'status', 's'} int arrays.
+def _repo_path(path: str) -> str:
+    return path if os.path.isabs(path) else os.path.join(REPO_DIR, path)
 
-    status 0 = certified highway.  Cached as an .npz under build/ (the CSV is 7 MB).
+
+def load_k4_records(csv_path: str | None, npz_path: str | None = K4_RECORDS_NPZ) -> dict:
+    """The per-config 4x4 records -> {'cfg', 'status', 's', 'dir'} int arrays sorted by config index
+    (status 0 = certified highway).
+
+    Prefers the committed `research/results/exhaustive_k4_records.npz` (uint32 onset, uint8 status,
+    int8 direction code, indexed by config index; written by make_k4_records_npz.py) and falls back
+    to the 7 MB gitignored CSV, so a fresh clone renders without regenerating the CSV.
     """
-    path = os.path.join(REPO_DIR, path) if not os.path.isabs(path) else path
+    npz = _repo_path(npz_path) if npz_path else None
+    if npz and os.path.exists(npz):
+        z = np.load(npz)
+        n = len(z["onset"])
+        return {"cfg": np.arange(n, dtype=np.int64), "status": z["status"].astype(np.int16),
+                "s": z["onset"].astype(np.int64), "dir": z["direction"].astype(np.int8), "source": npz}
+    if not csv_path:
+        raise FactsError(f"k4 records: neither {npz} nor a 'k4_records_csv' path is available")
+    path = _repo_path(csv_path)
     if not os.path.exists(path):
-        raise FactsError(f"k4 records CSV not found: {path} (it is not committed; regenerate it with "
-                         f"{K4_RECORDS_REGEN})")
-    cache = os.path.join(BUILD_DIR, "runs", "k4_records.npz")
-    if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(path):
-        z = np.load(cache)
-        return {"cfg": z["cfg"], "status": z["status"], "s": z["s"]}
-    cfg, status, s = [], [], []
+        raise FactsError(f"k4 records not found: {npz} is missing and the CSV {path} is not committed; "
+                         f"regenerate the CSV with {K4_RECORDS_REGEN} and pack it with make_k4_records_npz.py")
+    cfg, status, s, dirs = [], [], [], []
+    dir_code = {"-x,-y": 0, "+x,-y": 1, "-x,+y": 2, "+x,+y": 3}
     with open(path, newline="") as fh:
         for row in csv.DictReader(fh):
             cfg.append(int(row["cfg"]))
             status.append(int(row["status"]))
             s.append(int(row["s"]))
-    rec = {"cfg": np.array(cfg, dtype=np.int64), "status": np.array(status, dtype=np.int16), "s": np.array(s, dtype=np.int64)}
+            dirs.append(dir_code.get(row["dir"].strip().strip('"'), -1) if int(row["status"]) == 0 else -1)
+    rec = {"cfg": np.array(cfg, dtype=np.int64), "status": np.array(status, dtype=np.int16),
+           "s": np.array(s, dtype=np.int64), "dir": np.array(dirs, dtype=np.int8)}
     order = np.argsort(rec["cfg"])
     rec = {k: v[order] for k, v in rec.items()}
-    os.makedirs(os.path.dirname(cache), exist_ok=True)
-    np.savez(cache, **rec)
+    rec["source"] = path
     return rec
 
 
@@ -543,21 +641,27 @@ class AgePlayer(core.GridPlayer):
         return self.run.pos[max(0, self.k - n + 1): self.k + 1]
 
 
-LONGEST_TAIL_STEPS = 20_000   # steps simulated past LONGEST_ONSET: 48 frames x 104 + audio lookahead
+STUBBORN_TAIL_STEPS = 20_000   # steps simulated past the S12 onset: 48 frames x 104 + audio lookahead
+LONGEST_TAIL_STEPS = 4_000     # the longest-anywhere run is only re-simulated to assert its onset
+WALLS_TAIL_STEPS = 24_000      # past the last displayed WALLS step: audio lookahead at the doubled head rate
 
 
 class RunCache:
     """Lazily simulated runs shared by scenes and the audio engine.
 
-    Run ids: "empty" (S01-S08, S14, S15), "longest" (S12), "mosaic0".."mosaic5" (S10).
-    Every onset is asserted: the empty grid and the longest run against the facts, the
-    mosaic tiles against the STORYBOARD 3.3 table and k4_records.csv.
+    Run ids: "empty" (S01-S08, S14, S15), "stubborn" (S12: the provable 5x5 maximum), "walls"
+    (the WALLS insert: empty grid + the 3x3 block of WALLS_PLACEMENT), "mosaic0".."mosaic5" (S10),
+    "longest" (the longest onset found anywhere, re-simulated only to assert the S12 secondary line).
+    Every onset is asserted: the empty grid, the stubborn, walls and longest runs against the facts /
+    the placement record, the mosaic tiles against the STORYBOARD 3.3 table and the k4 records.
     """
 
     EMPTY_STEPS = 60_000
     EMPTY_SIZE = 2048
     MOSAIC_STEPS = 40_000   # 6,000 steps/s x 6 s + audio lookahead
     MOSAIC_SIZE = 2048      # the road travels ~750 cells in 40,000 steps
+    STUBBORN_SIZE = 2048    # bbox at the 5x5 onset is ~130 cells; 20,000 tail steps add ~385 cells of road
+    WALLS_SIZE = 4096       # the rebuilt road runs ~900 cells from the block (a 2048 grid is left); doubled again if needed
 
     def __init__(self, facts: Facts):
         self.facts = facts
@@ -577,6 +681,14 @@ class RunCache:
                 raise FactsError(f"empty-grid onset re-simulated as {got}, facts say {self.facts.onset}")
         elif rid == "longest":
             r = self._simulate_longest()
+        elif rid == "stubborn":
+            r = self._simulate_fit(self.facts.stubborn_cells, self.facts.stubborn_onset + STUBBORN_TAIL_STEPS, self.STUBBORN_SIZE)
+            got = core.find_onset(r.turns)
+            if got != self.facts.stubborn_onset:
+                raise FactsError(f"stubborn {self.facts.stubborn_k}x{self.facts.stubborn_k} run onset re-simulated as {got}, "
+                                 f"facts say {self.facts.stubborn_onset}")
+        elif rid == "walls":
+            r = self._simulate_walls()
         elif rid.startswith("mosaic"):
             i = int(rid[len("mosaic"):])
             tile = self.facts.mosaic_tiles[i]
@@ -592,37 +704,68 @@ class RunCache:
         return r
 
     def k4(self) -> dict:
-        """The k4_records.csv arrays {'cfg', 'status', 's'} (dot wall + mosaic assertions)."""
+        """The per-config 4x4 record arrays {'cfg', 'status', 's', 'dir'} (dot wall + mosaic assertions)."""
         if self._k4 is None:
-            if not self.facts.k4_records_csv:
-                raise FactsError("movie_facts: missing required field 'k4_records_csv'")
-            self._k4 = load_k4_records(self.facts.k4_records_csv)
+            self._k4 = load_k4_records(self.facts.k4_records_csv, self.facts.k4_records_npz)
         return self._k4
 
     def _assert_k4_record(self, i: int, cfg: int, onset: int):
         """STORYBOARD 5: a mosaic tile's re-derived onset must equal the CSV's `s` for its
         config index, and that record must be certified (status 0)."""
         rec = self.k4()
+        src = rec.get("source", self.facts.k4_records_csv)      # the npz or the CSV actually loaded
         j = int(np.searchsorted(rec["cfg"], cfg))
         if j >= len(rec["cfg"]) or int(rec["cfg"][j]) != cfg:
-            raise FactsError(f"mosaic tile {i}: cfg {cfg} not found in {self.facts.k4_records_csv}")
+            raise FactsError(f"mosaic tile {i}: cfg {cfg} not found in {src}")
         if onset != int(rec["s"][j]) or int(rec["status"][j]) != 0:
-            raise FactsError(f"mosaic tile {i} (cfg {cfg}): onset re-derived as {onset}, k4_records.csv says "
+            raise FactsError(f"mosaic tile {i} (cfg {cfg}): onset re-derived as {onset}, {src} says "
                              f"s={int(rec['s'][j])} status={int(rec['status'][j])}")
+
+    def _simulate_fit(self, cells, n_steps: int, size: int) -> core.AntRun:
+        """simulate_cached on a grid that is doubled until max |coord| + 64 < size / 2 (STORYBOARD 2.5)."""
+        while True:
+            try:
+                r = simulate_cached(cells, n_steps, size)
+            except RuntimeError as exc:            # core.simulate: the ant left the grid
+                print(f"[runs] {exc}; retrying on {2 * size}x{2 * size}")
+                size *= 2
+                continue
+            if int(np.abs(r.pos).max()) + 64 < size // 2:
+                return r
+            size *= 2
 
     def _simulate_longest(self) -> core.AntRun:
         f = self.facts
-        n_steps = f.longest_onset + LONGEST_TAIL_STEPS    # S12 shows <= 104 steps/frame after the onset
-        size = self.longest_size
-        while True:
-            r = simulate_cached(f.longest_cells, n_steps, size)
-            if int(np.abs(r.pos).max()) + 64 < size // 2:
-                break
-            size *= 2
-            self.longest_size = size
+        r = self._simulate_fit(f.longest_cells, f.longest_onset + LONGEST_TAIL_STEPS, self.longest_size)
+        self.longest_size = r.size
         got = core.find_onset(r.turns)
         if got != f.longest_onset:
             raise FactsError(f"longest run onset re-simulated as {got}, facts say {f.longest_onset}")
+        return r
+
+    def assert_longest_anywhere(self) -> int:
+        """Re-simulate the longest-anywhere start (STORYBOARD 5) and return its asserted onset."""
+        self.run("longest")
+        return self.facts.longest_onset
+
+    def _simulate_walls(self) -> core.AntRun:
+        """Empty grid + the WALLS_PLACEMENT block; the contact step (first step that reads a block cell)
+        and the onset are re-derived and asserted against the placement record."""
+        p = WALLS_PLACEMENT
+        verify_walls_placement(p)
+        n_steps = max(int(walls_schedule()[-1]), int(p["onset_step"])) + WALLS_TAIL_STEPS
+        r = self._simulate_fit(p["cells"], n_steps, self.WALLS_SIZE)
+        got = core.find_onset(r.turns)
+        if got != int(p["onset_step"]):
+            raise FactsError(f"walls run onset re-simulated as {got}, the placement record says {p['onset_step']}")
+        cells = np.array(p["cells"], dtype=np.int64)
+        on_block = np.all(r.pos[:-1, None, :] == cells[None, :, :], axis=2).any(axis=1)   # pos[k-1] read at step k
+        hits = np.nonzero(on_block)[0]
+        contact = int(hits[0]) + 1 if len(hits) else -1
+        if contact != int(p["contact_step"]):
+            raise FactsError(f"walls run contact step re-derived as {contact}, the placement record says {p['contact_step']}")
+        if contact <= self.facts.onset:
+            raise FactsError("walls placement: the block is touched before the empty-grid onset")
         return r
 
     def turns(self, rid: str) -> np.ndarray:
@@ -643,8 +786,37 @@ class RunCache:
             return self.facts.onset
         if rid == "longest":
             return self.facts.longest_onset
+        if rid == "stubborn":
+            return self.facts.stubborn_onset
+        if rid == "walls":
+            self.run(rid)
+            return int(WALLS_PLACEMENT["onset_step"])
         self.run(rid)
         return int(self.facts.mosaic_tiles[int(rid[len("mosaic"):])]["onset_derived"])
+
+
+def verify_walls_placement(p: dict = WALLS_PLACEMENT) -> bool:
+    """Check the WALLS_PLACEMENT record against its jsonl line when that (gitignored) file exists.
+    Returns True when the line was found and agrees; False when the file is absent (the in-render
+    re-derivation of the contact step and the onset still asserts the record)."""
+    path = _repo_path(p["source"])
+    if not os.path.exists(path):
+        return False
+    want_cells = sorted(tuple(int(v) for v in c) for c in p["cells"])
+    with open(path) as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            if rec.get("shape") != p["shape"] or tuple(rec.get("anchor", ())) != tuple(p["anchor"]):
+                continue
+            got = sorted(tuple(int(v) for v in c) for c in rec["cells"])
+            if got != want_cells or int(rec["contact_step"]) != int(p["contact_step"]) or \
+                    int(rec["onset_step"]) != int(p["onset_step"]) or rec.get("direction") != p["direction"] or \
+                    int(rec["extra_chaos"]) != int(p["extra_chaos"]) or rec.get("outcome") != "certified":
+                raise FactsError(f"WALLS_PLACEMENT disagrees with its line in {path}: {rec}")
+            return True
+    raise FactsError(f"WALLS_PLACEMENT anchor {p['anchor']} ({p['shape']}) not found in {path}")
 
 
 # --------------------------------------------------------------------------
@@ -699,16 +871,18 @@ def build_step_schedule(onset: int) -> np.ndarray:
     for f in range(600, 990):
         steps[f] = onset + 104 * (f - 600)
     end_s08 = onset + 104 * 390
-    # S09-S13: not shown (hold)
-    steps[990:1860] = end_s08
-    # S14 62-68 s: 300 steps/s (10 per frame) resuming from the S08 end
-    for f in range(1860, 2040):
-        steps[f] = end_s08 + 10 * (f - 1860)
-    # S15 68-74 s: identical to S01
-    for f in range(2040, 2220):
-        steps[f] = onset - 1500 + 100 * (f - 2040)
+    f14, f15 = frame_of(T_S14), frame_of(T_S15)
+    # S09-S13 + WALLS: the empty-grid run is not shown (hold)
+    steps[990:f14] = end_s08
+    # S14 67-73 s: 300 steps/s (10 per frame) resuming from the S08 end
+    for f in range(f14, f15):
+        steps[f] = end_s08 + 10 * (f - f14)
+    # S15 73-79 s: identical to S01
+    for f in range(f15, N_FRAMES):
+        steps[f] = onset - 1500 + 100 * (f - f15)
     assert steps[15] == onset and steps[480] == onset and steps[600] == onset
     assert steps[809] == onset + 21736 and steps[989] == onset + 40456 and steps[990] == onset + 40560
+    assert steps[f15 + 15] == onset
     assert np.all(np.diff(steps[300:481]) >= 0)
     return steps
 
@@ -741,6 +915,7 @@ def render_run(
     gap: bool = True,
     bg: tuple = BG,
     contrast_cap: bool | None = None,
+    ant_glow: float = 1.0,
 ) -> Image.Image:
     """Render the player's current grid through `cam` into a size[0] x size[1] RGB image.
 
@@ -748,7 +923,10 @@ def render_run(
     * `steps_drawn` = steps advanced since the previous frame; when > 100 (or
       contrast_cap=True) black cells are blended 40 % toward the background
       (photosensitivity cap, STORYBOARD 2.5) - the amber tint is kept, only dimmed;
-    * visited-but-empty tint, ant trail and hairline grid follow the px/cell rules;
+    * visited-but-empty tint, ant trail and hairline grid follow the px/cell rules
+      (the trail fades in over TRAIL_MAX_PX -> TRAIL_MAX_PX - TRAIL_FADE_PX px/cell);
+    * `ant_glow` scales the ant's halo (1 = the usual 3x radius, 0 = none), so a static
+      big-cell beat can show the cells next to the ant (S12's 5x5 pattern);
     * below 4 px/cell the grid is rendered at 4x and BOX-downsampled.
     """
     w, h = size
@@ -797,33 +975,35 @@ def render_run(
         arr[:, xs[(xs >= 0) & (xs < w)]] = gap_col
         arr[ys[(ys >= 0) & (ys < h)], :] = gap_col
         out = Image.fromarray(arr, "RGB")
-    if trail and cell_px >= 4:
-        draw_trail(out, cam, player.trail(), size)
+    trail_op = clamp((TRAIL_MAX_PX - cell_px) / TRAIL_FADE_PX)   # big cells show the path themselves (director's cut)
+    if trail and cell_px >= 4 and trail_op > 0:
+        draw_trail(out, cam, player.trail(), size, opacity=trail_op)
     if ant:
         ax, ay = player.ant_xy
-        draw_ant_marker(out, cam, ax, ay, player.ant_dir, size)
+        draw_ant_marker(out, cam, ax, ay, player.ant_dir, size, glow=ant_glow)
     return out
 
 
-def draw_trail(img: Image.Image, cam: Camera, positions: np.ndarray, size=(W, H)):
+def draw_trail(img: Image.Image, cam: Camera, positions: np.ndarray, size=(W, H), opacity: float = 1.0):
     """Fading blue dots on the last ant positions (60 % -> 0 %), newest brightest."""
     w, h = size
     n = len(positions)
-    if n < 2:
+    if n < 2 or opacity <= 0:
         return
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     cell_px = w / cam.cells_across
     r = max(1.5, cell_px * 0.18)
     for i, (x, y) in enumerate(positions[:-1]):
-        alpha = 0.6 * (i + 1) / n
+        alpha = 0.6 * (i + 1) / n * clamp(opacity)
         px, py = core.cell_to_px(cam, w, h, float(x) + 0.5, float(y) + 0.5)  # cell centre
         d.ellipse([px - r, py - r, px + r, py + r], fill=(*BLUE, int(255 * alpha)))
     img.paste(layer, (0, 0), layer)
 
 
-def draw_ant_marker(img: Image.Image, cam: Camera, x: int, y: int, d: int, size=(W, H)):
-    """Ant: heading chevron when cell >= 60 px, else a glowing square, min 10 px."""
+def draw_ant_marker(img: Image.Image, cam: Camera, x: int, y: int, d: int, size=(W, H), glow: float = 1.0):
+    """Ant: heading chevron when cell >= 60 px, else a glowing square, min 10 px.  `glow` scales
+    how far the halo reaches beyond the square (1 = 3x its radius, 0 = no halo)."""
     w, h = size
     cell_px = w / cam.cells_across
     px, py = core.cell_to_px(cam, w, h, x + 0.5, y + 0.5)
@@ -841,7 +1021,8 @@ def draw_ant_marker(img: Image.Image, cam: Camera, x: int, y: int, d: int, size=
     dl = ImageDraw.Draw(layer)
     r = side / 2
     for i, alpha in ((3.0, 40), (2.2, 70), (1.5, 110)):
-        dl.ellipse([px - r * i, py - r * i, px + r * i, py + r * i], fill=(*BLUE, alpha))
+        ri = r * (1.0 + (i - 1.0) * clamp(glow))
+        dl.ellipse([px - ri, py - ri, px + ri, py + ri], fill=(*BLUE, alpha))
     dl.rectangle([px - r, py - r, px + r, py + r], fill=(*BLUE, 255))
     img.paste(layer, (0, 0), layer)
 
@@ -960,6 +1141,12 @@ class Line:
     gap_before: int = 0       # extra px above this line
 
 
+def clamp_band_x(x0: float, x1: float) -> tuple[float, float]:
+    """Clamp a text band's horizontal extent to the safe zone x 80..960 (STORYBOARD 2.3): the text
+    itself is always <= 880 px, so only the padding is reduced."""
+    return max(float(x0), float(SAFE_X0)), min(float(x1), float(SAFE_X1))
+
+
 def card_anim(t: float, t0: float, t1: float, snap_in: bool = False, snap_out: bool = False) -> tuple[float, float]:
     """(opacity, dy) of a card living on [t0, t1): 150 ms fades, 12 px upward drift on the way in.
     Hero slams use snap_in=True (1-frame snap, no fade).  The fade-in is offset by one frame so
@@ -1026,6 +1213,8 @@ def draw_card(
         bx0 = (x_left if x_left is not None else SAFE_X0 + 20) - BAND_PAD
     else:
         bx0 = cx - bw / 2
+    bx0, bx1 = clamp_band_x(bx0, bx0 + bw)      # the band never leaves x 80..960 (padding gives way)
+    bw = bx1 - bx0
     if top is None:
         top = (center_y if center_y is not None else H / 2) - bh / 2
     by0 = top + dy
@@ -1114,7 +1303,8 @@ def draw_counter(
     asc, desc = fnt.getmetrics()
     tw, th = fnt.getlength(text), asc + desc
     pad = 14
-    box = (x - pad, y - th / 2 - pad, x + tw + pad, y + th / 2 + pad)
+    bx0, bx1 = clamp_band_x(x - pad, x + tw + pad)
+    box = (bx0, y - th / 2 - pad, bx1, y + th / 2 + pad)
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     a = int(255 * clamp(opacity))
@@ -1208,8 +1398,8 @@ def draw_bar_chart(
         hgt = (py1 - py0) * (math.log10(1 + b["count"]) / math.log10(1 + cmax))
         d.rectangle([bx0 + 1, py1 - hgt, bx1 - 1, py1], fill=(*CREAM, a))
     if title:
-        tf, _ = fit_font("mono", label_size, title, max_w=px1 - px0)
-        d.text((px0, y0 + pad - 4), title, font=tf, fill=(*SECONDARY, a))
+        tf, _ = fit_font("mono", label_size, title, max_w=x1 - x0 - 16)   # the title may use the box's full width
+        d.text((x0 + 8, y0 + pad - 4), title, font=tf, fill=(*SECONDARY, a))
     last_label_right = -1e9
     for v in (100, 1000, 10000, 100000, 1000000):
         if lo_all <= math.log10(v) <= hi_all:
@@ -1295,7 +1485,10 @@ def audio_state(*, osc=None, pad=None, drone=None, mute=False, noise=None) -> di
         osc = [osc]
     voices = []
     for v in osc:
-        voices.append({"run": v["run"], "step": int(v["step"]), "gain_db": float(v.get("gain_db", -16.0))})
+        voice = {"run": v["run"], "step": int(v["step"]), "gain_db": float(v.get("gain_db", -16.0))}
+        if "rate_mult" in v:                       # read-head rate multiplier: 2.0 = one octave up (440 Hz)
+            voice["rate_mult"] = float(v["rate_mult"])
+        voices.append(voice)
     d = {"on": True, "gain_db": -24.0, "add_e": False}
     if drone is not None:
         d.update(drone)

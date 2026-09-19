@@ -1,6 +1,6 @@
 """Road chapter scenes: S01-S08 and S15 (STORYBOARD 3.2) plus `road_backdrop`.
 
-  S01 hook            static 180-cell camera, the road erupts on frame 15
+  S01 hook            static 130-cell camera (blob at screen (590, 1090)), the road erupts on frame 15
   S02 / S03 rules     9-cell camera, three-phase step animation (rotate, wipe, slide)
   S04 whole program   zoom-out 9 -> 27 cells while the rate ramps 2 -> 60 steps/s
   S05 chaos           ease-out zoom 27 -> 90 cells, counter lands on the onset at frame 480
@@ -37,15 +37,36 @@ HANDOFF_S = 0.6                      # eased camera hand-offs (S06->S07, S07 fol
 PLUCK_MAX_RATE = 20.0                # steps/s: plucks below, turn-stream oscillator above
 XFADE_S = 0.5                        # pluck <-> oscillator crossfade
 S04_PLUCK_END = 7.0 + 3.0 * math.log(PLUCK_MAX_RATE / 2.0) / math.log(30.0)   # r(t) = 2*30^((t-7)/3) hits 20
+T_S15 = common.T_S15                 # 73.0 s (the WALLS insert shifted S13-S15 by +5.0 s)
 S15_DECEL = ((4.0, 4.4, 3000.0, 8.0), (4.4, 5.5, 8.0, 2.0))  # (t0, t1, r0, r1) local s, exponential legs
-S15_DRIFT = (2.0, 3.0)               # local s: the camera leaves the S01 framing at 70.0 and settles on the ant at 71.0 (a 2 s drift lets the ant touch the frame edge)
-S15_LOCK = S15_DECEL[0][0]           # local s: the camera stops following at 72.0, the ant then hops in view
+S15_DRIFT = (2.0, 3.0)               # local s: the camera leaves the hook framing at +2.0 and settles on the ant at +3.0
+S15_LOCK = S15_DECEL[0][0]           # local s: the camera stops following at +4.0, the ant then hops in view
 S15_TIP_CELLS = 90                   # cells across once settled (12 px/cell: single steps are visible)
-S15_TIP_SCREEN = (W / 2, 820)        # the ant's screen position once settled: the text-free band between the cards
-S15_DRIFT_CTRL = (110, 780)          # Bezier control: the ant travels up the left edge, clear of the sub-lines band
-S15_SUB_TOP = 1000                   # sub-lines band top (the blob sits at y ~675-945 under the hook camera)
-S15_FADE_LOCAL = 5.5                 # local s: the fade to plain starts here and completes on the last frame (2219)
+S15_TIP_SCREEN = (W / 2, 1170)       # the ant's screen position once settled: the text-free band between the sub-lines (end ~903) and the credit (1437)
+S15_DRIFT_CTRL = (100, 1290)         # Bezier control: the ant comes back along the lower-left, above the credit band
+S15_SUB_TOP = 650                    # sub-lines band top: directly under the question band (300 .. ~646), STORYBOARD "640-830"
+S15_CREDIT_LINES = (Line("made by Claude (an AI)", "mono", 40, SECONDARY),
+                    Line("github: evanmack45/Claude-experiment", "mono", 38, SECONDARY))
+S15_CREDIT_BOTTOM = common.SAFE_Y1   # the credit band is bottom-aligned to the safe zone (1437 .. 1600, measured), reviewer V1 / SCI-02
+S15_FADE_LOCAL = 5.5                 # local s: the fade to plain starts here and completes on the last frame
+HOOK_CELLS = 130                     # S01 / S15: cells across (8.3 px/cell), director's cut
+HOOK_BLOB_DXY = (50, 130)            # the blob centre sits this far from the frame centre, away from the highway corner: (590, 1090) for -x,-y
 HOLD = 1e9                           # card end time "hold to the hard cut"
+PLUCK_FULL_RATE = 4.0                # steps/s: plucks at full gain up to here ...
+PLUCK_DB_PER_DOUBLING = 3.5          # ... then -3.5 dB per doubling of the rate (S04: 20 stacked 350 ms plucks were the loudest passage, reviewer T-01)
+
+
+def _s15_credit_top() -> float:
+    """Credit band top: its measured height above S15_CREDIT_BOTTOM (1437.05 for Mono 40 + Mono 38)."""
+    h = 2 * common.BAND_PAD + sum(sum(common.fit_font(ln.role, ln.size, ln.text)[0].getmetrics()) * common.LINE_SPACING
+                                  for ln in S15_CREDIT_LINES)
+    return S15_CREDIT_BOTTOM - h
+
+
+def _pluck_gain_db(rate: float) -> float:
+    """Pluck gain versus the instantaneous step rate: 0 dB up to PLUCK_FULL_RATE, then
+    -PLUCK_DB_PER_DOUBLING per doubling, so a cascade of overlapping plucks does not bulge."""
+    return -PLUCK_DB_PER_DOUBLING * max(0.0, math.log2(max(rate, 1e-9) / PLUCK_FULL_RATE))
 
 
 def _rate_crossing(legs, rate: float) -> float:
@@ -56,7 +77,7 @@ def _rate_crossing(legs, rate: float) -> float:
     raise ValueError(f"rate {rate} outside the deceleration legs")
 
 
-S15_PLUCK_START = _rate_crossing(S15_DECEL, PLUCK_MAX_RATE)   # ~72.34 s: tone -> per-step plucks
+S15_PLUCK_START = _rate_crossing(S15_DECEL, PLUCK_MAX_RATE)   # local ~4.34 s (77.34 s): tone -> per-step plucks
 
 ARROW_L = (190, 215, 255)            # "blue-white" left-turn arrow
 SCREEN_ANGLE = {0: -90.0, 1: 0.0, 2: 90.0, 3: 180.0}   # heading (N,E,S,W) -> screen angle, y down
@@ -80,7 +101,8 @@ def _label(img: Image.Image, text: str, x: float, y: float, *, size: int = 40, c
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     a = int(255 * clamp(opacity))
-    d.rounded_rectangle([x - pad, y - th / 2 - pad, x + tw + pad, y + th / 2 + pad], radius=16,
+    bx0, bx1 = common.clamp_band_x(x - pad, x + tw + pad)
+    d.rounded_rectangle([bx0, y - th / 2 - pad, bx1, y + th / 2 + pad], radius=16,
                         fill=(*PLAIN, int(common.BAND_ALPHA * a)))
     d.text((x, y - th / 2), text, font=fnt, fill=(*color, a))
     img.paste(layer, (0, 0), layer)
@@ -155,18 +177,22 @@ def _draw_ring(img: Image.Image, cam: Camera, ant_xy, t_local: float):
 # --------------------------------------------------------------------------
 
 def _hook_camera(ctx) -> Camera:
-    """S01 / S15: static, 180 cells across, centred 25 cells toward the highway corner."""
+    """S01 / S15: static, HOOK_CELLS across; the blob centre (centroid of the cells modified up to the
+    onset) sits at screen (W/2 - sx*50, H/2 - sy*130) = (590, 1090) for the -x,-y highway, so the road
+    erupts from the blob and reaches the lower-left frame edge at ~1.4 s; the blob's top clears the
+    S15 sub-lines band (ends ~903) by ~23 px and the road crosses x = 80 above the credit band (top
+    1437) by ~27 px (both computed from the run's cells at 74.8 s)."""
     sx, sy = ctx.facts.highway_sign
-    return common.cam_static(25 * sx, 25 * sy, 180)
+    return common.cam_anchor(_blob_at_onset(ctx), (W / 2 - sx * HOOK_BLOB_DXY[0], H / 2 - sy * HOOK_BLOB_DXY[1]), HOOK_CELLS)
 
 
 def _s15_camera(ctx, frame: int, t_local: float) -> Camera:
-    """S15: the S01 camera until 70.0 s (frames 2040-2100 mirror S01); then a 1 s smoothstep
-    drift that carries the ant from where the hook framing shows it at 70.0 along a quadratic
-    Bezier (up the left edge, clear of the sub-lines band) to the centre of the text-free band
-    while zooming 180 -> 90 cells; the camera follows the ant until 72.0 and then locks, so the
+    """S15: the S01 camera until +2.0 s (the first 60 frames mirror S01); then a 1 s smoothstep
+    drift that carries the ant from where the hook framing shows it at +2.0 along a quadratic
+    Bezier (along the lower-left, above the credit band) to the centre of the text-free band
+    while zooming 130 -> 90 cells; the camera follows the ant until +4.0 and then locks, so the
     decelerating steps are seen as the ant hopping cell by cell (the ant leaves the static hook
-    frame at ~69.9 s, before the audible slow-down)."""
+    frame at ~+1.5 s, before the audible slow-down)."""
     hook = _hook_camera(ctx)
     d0, d1 = S15_DRIFT
     if t_local <= d0:
@@ -177,10 +203,10 @@ def _s15_camera(ctx, frame: int, t_local: float) -> Camera:
     def ant_at(f):
         return tuple(float(v) + 0.5 for v in pos[int(sched[f - ctx.shot.f0])])
 
-    ant = ant_at(min(frame, frame_of(68.0 + S15_LOCK)))
+    ant = ant_at(min(frame, frame_of(T_S15 + S15_LOCK)))
     e = smoothstep((t_local - d0) / (d1 - d0))
     ca = math.exp(lerp(math.log(hook.cells_across), math.log(S15_TIP_CELLS), e))
-    p0 = core.cell_to_px(hook, W, H, *ant_at(frame_of(68.0 + d0)))
+    p0 = core.cell_to_px(hook, W, H, *ant_at(frame_of(T_S15 + d0)))
     w0, w1, w2 = (1 - e) ** 2, 2 * e * (1 - e), e ** 2
     target = tuple(w0 * p0[i] + w1 * S15_DRIFT_CTRL[i] + w2 * S15_TIP_SCREEN[i] for i in range(2))
     return common.cam_anchor(ant, target, ca)
@@ -331,7 +357,7 @@ def _rules_shot(ctx, frame: int, *, t0: float, t1: float, first_step: int, last_
 # --------------------------------------------------------------------------
 
 def _s15_rate(tl: float) -> float:
-    """Displayed steps/s in S15 at local time tl: 3,000 until 72.0, then exponential legs 3,000 -> 8 -> 2."""
+    """Displayed steps/s in S15 at local time tl: 3,000 until +4.0, then exponential legs 3,000 -> 8 -> 2."""
     if tl < S15_DECEL[0][0]:
         return S15_DECEL[0][2]
     for t0, t1, r0, r1 in S15_DECEL:
@@ -341,15 +367,15 @@ def _s15_rate(tl: float) -> float:
 
 
 def _s15_schedule(ctx) -> np.ndarray:
-    """Displayed step per S15 local frame: the common schedule (mirrors S01) until 72.0 s, then the
-    3,000 -> 8 -> 2 steps/s deceleration whose last step fires exactly at 73.5 s and is a left turn
-    (the closing A3 pluck); the picture holds from 73.5 to 74.0."""
+    """Displayed step per S15 local frame: the common schedule (mirrors S01) until +4.0 s, then the
+    3,000 -> 8 -> 2 steps/s deceleration whose last step fires exactly at +5.5 s and is a left turn
+    (the closing A3 pluck); the picture holds from +5.5 to the cut."""
     key = id(ctx)
     if key in _S15_SCHEDULES:
         return _S15_SCHEDULES[key]
-    f0, n = frame_of(68.0), frame_of(74.0) - frame_of(68.0)
+    f0, n = frame_of(T_S15), frame_of(common.DURATION_S) - frame_of(T_S15)
     steps = np.array([ctx.step_at(f0 + i) for i in range(n)], dtype=np.int64)
-    fa, fb = frame_of(72.0) - f0 - 1, frame_of(73.5) - f0       # cumulative count starts at frame fa
+    fa, fb = frame_of(T_S15 + S15_DECEL[0][0]) - f0 - 1, frame_of(T_S15 + S15_DECEL[1][1]) - f0   # cumulative count starts at frame fa
     sub = 100
     cum = np.zeros(fb - fa + 1)
     for j in range(fb - fa):
@@ -437,8 +463,9 @@ def S04(ctx, t_local, frame):
     events = _demo_events(ctx, frame, 9, 9)            # step 9's flip click lands at 7.02 s
     xf = clamp((ctx.t - S04_PLUCK_END) / XFADE_S)
     if xf < 1.0:
+        g = _pluck_gain_db(2.0 * 30.0 ** ((ctx.t - 7.0) / 3.0))      # STORYBOARD 3.1: r(t) = 2 * 30^((t-7)/3)
         for k in range(ctx.step_at(frame - 1) + 1, step + 1):
-            events.append({"type": "pluck", "run": "empty", "step": k, "gain_db": lerp(0.0, -30.0, xf)})
+            events.append({"type": "pluck", "run": "empty", "step": k, "gain_db": lerp(g, -30.0, xf)})
     osc = [{"run": "empty", "step": step, "gain_db": lerp(-40.0, -20.0, xf)}] if ctx.t >= S04_PLUCK_END else []
     return img, audio_state(osc=osc, drone={"add_e": True}), events
 
@@ -541,7 +568,7 @@ def S08(ctx, t_local, frame):
 
 
 def S15(ctx, t_local, frame):
-    """CTA: the hook replays (same camera and run until 70.0, then a drift onto the ant); the tone
+    """CTA: the hook replays (same camera and run until +2.0, then a drift onto the ant); the tone
     hands over to slowing plucks; fade to plain."""
     sched = _s15_schedule(ctx)
     i = ctx.local_frame(frame)
@@ -550,21 +577,20 @@ def S15(ctx, t_local, frame):
     player.seek(step)
     img = common.render_run(player, _s15_camera(ctx, frame, t_local),
                             steps_drawn=step - int(sched[i - 1]) if i > 0 else 0)
-    op, dy = card_anim(ctx.t, 68.2, 74.0, snap_out=True)
+    t0, t_end = ctx.shot.t0, ctx.shot.t1
+    op, dy = card_anim(ctx.t, t0 + 0.2, t_end, snap_out=True)
     common.draw_card(img, [Line("Can YOU find a start", "bold", 72), Line("that never", "bold", 72),
                            Line("builds a road?", "bold", 72)], top=300, opacity=op, dy=dy)
-    op, dy = card_anim(ctx.t, 68.6, 74.0, snap_out=True)
+    op, dy = card_anim(ctx.t, t0 + 0.6, t_end, snap_out=True)
     common.draw_card(img, [Line("Any finite start counts.", "regular", 48), Line("Proof or counterexample?", "regular", 48),
                            Line("Argue in the comments.", "regular", 48)], top=S15_SUB_TOP, opacity=op, dy=dy)
-    op, dy = card_anim(ctx.t, 69.0, 74.0, snap_out=True)
-    common.draw_card(img, [Line("made by Claude (an AI)", "mono", 40, SECONDARY),
-                           Line("github: evanmack45/Claude-experiment", "mono", 38, SECONDARY)],
-                     top=1380, opacity=op, dy=dy)
-    f_fade, f_last = frame_of(68.0 + S15_FADE_LOCAL), ctx.shot.f1 - 1
+    op, dy = card_anim(ctx.t, t0 + 1.0, t_end, snap_out=True)
+    common.draw_card(img, list(S15_CREDIT_LINES), top=_s15_credit_top(), opacity=op, dy=dy)
+    f_fade, f_last = frame_of(t0 + S15_FADE_LOCAL), ctx.shot.f1 - 1
     if frame >= f_fade:                                  # fade to plain, reaching 100 % on the last frame
         img = Image.blend(img, Image.new("RGB", img.size, PLAIN), clamp((frame - f_fade) / (f_last - f_fade)))
-    # audio: crackle -> tone on the onset frame, A major pad, tone -> plucks from ~72.7 s, silence after 73.5
-    events = [{"type": "thump"}] if ctx.at(frame, 68.5) else []
+    # audio: crackle -> tone on the onset frame, A major pad, tone -> plucks from ~+4.34 s, silence after +5.5
+    events = [{"type": "thump"}] if ctx.at(frame, t0 + 0.5) else []
     xf = clamp((t_local - S15_PLUCK_START) / XFADE_S)
     if t_local >= S15_PLUCK_START and i > 0:
         for k in range(int(sched[i - 1]) + 1, step + 1):

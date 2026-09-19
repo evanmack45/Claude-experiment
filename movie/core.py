@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import os
+import shutil
 import subprocess
 import wave
 from dataclasses import dataclass, field
@@ -30,6 +31,16 @@ def ffmpeg_exe() -> str:
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:  # pragma: no cover
         return "ffmpeg"
+
+
+def ffprobe_exe() -> str | None:
+    """An ffprobe next to the bundled ffmpeg (basename only: the imageio_ffmpeg directory name
+    must not be rewritten), else one on PATH, else None (callers parse `ffmpeg -i`)."""
+    ff = ffmpeg_exe()
+    cand = os.path.join(os.path.dirname(ff), os.path.basename(ff).replace("ffmpeg", "ffprobe", 1))
+    if os.path.exists(cand):
+        return cand
+    return shutil.which("ffprobe")
 
 
 # --------------------------------------------------------------------------
@@ -607,8 +618,8 @@ def pad_chord(freqs, dur, sr=SR, gain=0.2, attack=1.5, release=2.0, cutoff=1200.
 def probe(path: str) -> dict:
     """Return basic stream info using ffprobe if available, else ffmpeg -i parsing."""
     ff = ffmpeg_exe()
-    ffprobe = ff.replace("ffmpeg", "ffprobe")
-    if os.path.exists(ffprobe):
+    ffprobe = ffprobe_exe()
+    if ffprobe:
         out = subprocess.run([ffprobe, "-v", "error", "-show_entries", "stream=codec_name,width,height,r_frame_rate,duration,pix_fmt,sample_rate,channels", "-of", "default=noprint_wrappers=1", path], capture_output=True, text=True).stdout
         return {"raw": out}
     out = subprocess.run([ff, "-i", path], capture_output=True, text=True).stderr

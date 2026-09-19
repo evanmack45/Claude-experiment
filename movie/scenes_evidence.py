@@ -3,7 +3,8 @@
 S09 THE MYSTERY        plain background + the S08 road at 20 %, a re-rolling 4x4 start box
 S10 MOSAIC             six live runs from the six real 4x4 patterns of STORYBOARD 3.3
 S11 THE COUNT          the 256 x 256 dot wall of every 4x4 start, counter and side bars
-S12 THE STUBBORNEST    the longest-delay run played live, real 4x4 onset histogram
+S12 THE STUBBORNEST    the provably slowest 5x5 start played live, real 5x5 onset histogram
+WALLS                  Appendix A insert: a real 3x3 block on the empty-grid highway, live rebuild
 S13 VERDICT            tested / highways / exceptions, "That's evidence. Not a proof."
 S14 SCORECARD          PROVEN / PROVEN / UNPROVEN over the running highway at 25 %
 
@@ -59,7 +60,8 @@ def _text_band(img, text, role, size, color, *, y_center, x=None, cx=None, opaci
         x = cx - tw / 2
     x += dx
     hh = (band_h / 2) if band_h else (th / 2 + pad)
-    box = (x - pad, y_center - hh, x + tw + pad, y_center + hh)
+    bx0, bx1 = common.clamp_band_x(x - pad, x + tw + pad)
+    box = (bx0, y_center - hh, bx1, y_center + hh)
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     a = int(255 * clamp(opacity))
@@ -176,7 +178,7 @@ def S09(ctx, t_local, frame):
 # --------------------------------------------------------------------------
 
 TILE_X = (140, 580)
-TILE_Y = (384, 784, 1184)      # storyboard 360/760/1160 + 24: the card band (top 250) ends at ~376
+TILE_Y = (452, 832, 1212)      # storyboard 360/760/1160 + 92, rows 380 apart: the two-line card B (top 250) ends at ~446; the grid ends at 1574
 TILE_PX = 360
 TILE_CELLS = 100
 S10_STEPS_PER_FRAME = 6000 // FPS       # 6,000 steps/s
@@ -280,10 +282,11 @@ def S10(ctx, t_local, frame):
     n_tiles = len(ctx.facts.mosaic_tiles)
     for i in range(n_tiles):
         _draw_tile(ctx, img, i, frame)
-    op, dy = card_anim(t, 38.0, 41.0)
-    common.draw_card(img, [Line("Every one we tried builds a road.", "regular", 52)], top=250, opacity=op, dy=dy)
+    op, dy = card_anim(t, 38.0, 41.0)      # the film's only first-person line (director's cut)
+    common.draw_card(img, [Line(f"I tested it {ctx.facts.total_tested_fmt} times.", "regular", 56)], top=250, opacity=op, dy=dy)
     op, dy = card_anim(t, 41.0, HOLD)
-    common.draw_card(img, [Line("Nobody can prove it always will.", "regular", 52)], top=250, opacity=op, dy=dy)
+    common.draw_card(img, [Line("Every one built a road.", "regular", 52),
+                           Line("Nobody can prove it always will.", "regular", 52)], top=250, opacity=op, dy=dy)
     # audio: one crackle voice per running tile, blips ascending in certification order
     voices = [{"run": f"mosaic{i}", "step": _tile_step(ctx, i, frame), "gain_db": -26.0}
               for i in range(n_tiles) if frame > _tile_start_frame(ctx, i)]
@@ -399,107 +402,158 @@ def S11(ctx, t_local, frame):
 
 
 # --------------------------------------------------------------------------
-# S12 THE STUBBORNEST START (50.0-57.0)
+# S12 THE STUBBORNEST START (50.0-57.0): the provably slowest 5x5 start (director's cut)
 # --------------------------------------------------------------------------
 
 S12_T_RUN, S12_T_ONSET = 50.6, 55.4        # run starts / onset frame
-S12_STATIC_PX = 20                         # px per cell for the static pattern
+S12_STATIC_PX = 40                         # px per cell for the static pattern (200 px square; the director's 20 px read as a smudge)
+S12_STATIC_GLOW = 0.25                     # the ant's halo during the static beat, scaled so the neighbouring cells stay readable
 S12_AUTOFIT_ABOVE = 48                     # auto-fit when the start box is wider than this
+S12_DIVE_MARGIN = 40                       # px: the ant's distance from the stage edge at the end of the dive
 S12_CHART_BOX = (100, 1240, 940, 1560)
 S12_TWEEN_S = 0.6                          # static -> auto-fit camera hand-off
-S12_STAGE_Y = (510, 1125)                  # text-free band: below card B (ends ~502), above the counter band (~1131)
-S12_STAGE_CY = sum(S12_STAGE_Y) / 2
+S12_CARD_TOP = 250
 S12_POST_STEPS_PER_FRAME = 104             # after the onset: one period per frame, as in S07
 S12_TIP_CELLS = 160                        # cells across once the camera has dived to the road tip (57.0)
+S12_RUN = "stubborn"                       # RunCache id of the run S12 plays
+
+
+def _s12_cards(f) -> tuple[list[Line], list[Line]]:
+    """Card A (50.0-53.5) and the full card B (53.5-57.0, its last three lines from the onset frame)."""
+    k = f.stubborn_k
+    caption = f"{len(f.stubborn_cells)} cells · slowest of all {fmt_int(f.stubborn_n_configs)}"
+    # director: Mono 44, else 40; the largest size whose line still leaves the band its 28 px padding
+    # inside the safe width (reviewer V3: at Mono 40 the 867 px line touched the clamped band's edges)
+    fits_w = common.MAX_TEXT_W - 2 * common.BAND_PAD
+    cap_size = next((s for s in (44, 40, 36) if common.measure(caption, "mono", s) <= fits_w), 36)
+    card_a = [Line(f"The stubbornest {k}x{k} start:", "regular", 56), Line(caption, "mono", cap_size, SECONDARY)]
+    box = f"({f.longest_box_k}x{f.longest_box_k} box)" if f.longest_box_k else f"({f.longest_source})"
+    card_b = [Line(f"Longest delay: {f.stubborn_onset_fmt} steps.", "regular", 56),
+              Line("Still a road.", "bold", 84, gap_before=8),
+              Line(f"longest anywhere: {f.longest_onset_fmt} steps", "mono", 40, SECONDARY, gap_before=6),
+              Line(box, "mono", 40, SECONDARY)]
+    return card_a, card_b
+
+
+def _s12_stage(ctx) -> tuple[float, float]:
+    """Text-free stage band: below the full card B (measured), above the counter band (~1131)."""
+    def derive():
+        _, card_b = _s12_cards(ctx.facts)
+        h = 2 * common.BAND_PAD
+        for ln in card_b:
+            h += sum(common.fit_font(ln.role, ln.size, ln.text)[0].getmetrics()) * LINE_SPACING + ln.gap_before
+        return (S12_CARD_TOP + h + 8, 1125.0)
+    return _memo(ctx, "s12_stage", derive)
 
 
 def _s12_step(ctx, frame: int) -> int:
-    """Displayed step of the longest run: constant rate LONGEST_ONSET / 4.8 s from 50.6 s,
-    landing exactly on the onset at 55.4 s; then one period per frame to the cut, so the
-    fresh road and the ant stay inside the stage band (the counter is frozen by then)."""
+    """Displayed step of the stubborn run: constant rate onset / 4.8 s from 50.6 s, landing
+    exactly on the onset at 55.4 s; then one period per frame to the cut, so the fresh road
+    and the ant stay inside the stage band (the counter is frozen by then)."""
     f_run, f_on = frame_of(S12_T_RUN), frame_of(S12_T_ONSET)
     if frame <= f_run:
         return 0
-    onset = ctx.facts.longest_onset
+    onset = ctx.facts.stubborn_onset
     if frame <= f_on:
         return int(round(onset * (frame - f_run) / (f_on - f_run)))
-    n = len(ctx.runs.turns("longest"))
+    n = len(ctx.runs.turns(S12_RUN))
     return int(min(n, onset + S12_POST_STEPS_PER_FRAME * (frame - f_on)))
 
 
-def _s12_fit(bbox) -> Camera:
+def _s12_fit(ctx, bbox) -> Camera:
     """STORYBOARD 2.5 auto-fit of a modified-cell bbox, but into the stage band rather than the
     full frame: cells_across = clamp(1.3 * max(bw, bh * 1080 / stage_h, 64), 64, 1080) and the
     bbox centre lands on the stage centre, so nothing of the run hides under the card, the
     counter or the histogram."""
     x0, y0, x1, y1 = (float(v) for v in bbox)
     bw, bh = x1 - x0 + 1, y1 - y0 + 1
-    stage_h = S12_STAGE_Y[1] - S12_STAGE_Y[0]
-    ca = clamp(1.3 * max(bw, bh * W / stage_h, 64), 64, 1080)
-    return common.cam_anchor(((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2), (W / 2, S12_STAGE_CY), ca)
+    sy0, sy1 = _s12_stage(ctx)
+    ca = clamp(1.3 * max(bw, bh * W / (sy1 - sy0), 64), 64, 1080)
+    return common.cam_anchor(((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2), (W / 2, (sy0 + sy1) / 2), ca)
+
+
+def _s12_dive_target(ctx) -> tuple[float, float]:
+    """Screen point the ant slides to by the cut.  The fresh road arrives at the ant from the
+    direction opposite to the run's own highway displacement (derived from the run, never assumed),
+    so the ant is placed at the far edge of the stage band and the road's centre line is aimed at
+    the frame corner on its side at the stage's near edge: the road then leaves the frame before it
+    could pass under card B (reviewer V7)."""
+    def derive():
+        run, onset, period = ctx.runs.run(S12_RUN), ctx.facts.stubborn_onset, ctx.facts.period
+        sx, sy = (int(v) for v in np.sign(run.pos[onset + period] - run.pos[onset]))
+        if sx == 0 or sy == 0:
+            raise common.FactsError("S12: the stubborn run's highway displacement is not diagonal")
+        sy0, sy1 = _s12_stage(ctx)
+        y_ant = sy1 - S12_DIVE_MARGIN if sy < 0 else sy0 + S12_DIVE_MARGIN   # the road comes from above (screen) when it heads -y
+        tau = sy1 - sy0 - S12_DIVE_MARGIN                                    # 45 degree line: |dx| = |dy|
+        x_edge = 0.0 if sx > 0 else float(W)                                 # ... and from the left when it heads +x
+        return (x_edge + sx * tau, float(y_ant))
+    return _memo(ctx, "s12_dive_target", derive)
 
 
 def _s12_camera(ctx, frame: int) -> Camera:
     """Static stage fit (50.0-50.6) -> lagged auto-fit of the growing bbox (to the onset) ->
-    a 1.6 s smoothstep dive that slides the ant from where the fit shows it to the stage centre
+    a 1.6 s smoothstep dive that slides the ant from where the fit shows it to _s12_dive_target
     while zooming to S12_TIP_CELLS, so the ant and the fresh road are on screen to the cut."""
-    stats = ctx.runs.stats("longest")
+    stats = ctx.runs.stats(S12_RUN)
+    stage_cy = sum(_s12_stage(ctx)) / 2
     x0, y0, x1, y1 = stats.bbox_at(1)
     if max(x1 - x0 + 1, y1 - y0 + 1) > S12_AUTOFIT_ABOVE:
-        static = _s12_fit((x0, y0, x1, y1))
+        static = _s12_fit(ctx, (x0, y0, x1, y1))
     else:
-        static = common.cam_anchor(((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2), (W / 2, S12_STAGE_CY), W / S12_STATIC_PX)
+        static = common.cam_anchor(((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2), (W / 2, stage_cy), W / S12_STATIC_PX)
     if ctx.t < S12_T_RUN:
         return static
     f_on = frame_of(S12_T_ONSET)
 
     def lagged_fit(f):
-        return _s12_fit(ctx.lag.value("s12_bbox", f, ctx.shot.f0, lambda g: stats.bbox_at(max(1, _s12_step(ctx, g)))))
+        return _s12_fit(ctx, ctx.lag.value("s12_bbox", f, ctx.shot.f0, lambda g: stats.bbox_at(max(1, _s12_step(ctx, g)))))
 
     if frame <= f_on:
         return common.cam_tween(static, lagged_fit(frame), (ctx.t - S12_T_RUN) / S12_TWEEN_S)
     fit = _memo(ctx, "s12_fit_at_onset", lambda: lagged_fit(f_on))
-    ax, ay = (float(v) + 0.5 for v in ctx.runs.run("longest").pos[_s12_step(ctx, frame)])
+    ax, ay = (float(v) + 0.5 for v in ctx.runs.run(S12_RUN).pos[_s12_step(ctx, frame)])
     e = smoothstep((frame - f_on) / (ctx.shot.f1 - 1 - f_on))
     ca = math.exp(lerp(math.log(fit.cells_across), math.log(S12_TIP_CELLS), e))
     hx, hy = core.cell_to_px(fit, W, H, ax, ay)
-    return common.cam_anchor((ax, ay), (lerp(hx, W / 2, e), lerp(hy, S12_STAGE_CY, e)), ca)
+    tx, ty = _s12_dive_target(ctx)
+    return common.cam_anchor((ax, ay), (lerp(hx, tx, e), lerp(hy, ty, e)), ca)
 
 
 def S12(ctx, t_local, frame):
     t = ctx.t
     f = ctx.facts
-    player = ctx.runs.player("longest")
+    _memo(ctx, "longest_anywhere", ctx.runs.assert_longest_anywhere)   # STORYBOARD 5: the secondary line's number is re-simulated
+    player = ctx.runs.player(S12_RUN)
     step = _s12_step(ctx, frame)
     player.seek(step)
     steps_drawn = step - _s12_step(ctx, frame - 1)
-    img = common.render_run(player, _s12_camera(ctx, frame), steps_drawn=steps_drawn)
-    at_onset = step >= f.longest_onset
-    common.draw_counter(img, min(step, f.longest_onset), x=100, y=1180, size=60, running=not at_onset)  # freezes cream
+    # the static beat shows the pattern with a cell-sized halo (reviewer V2); the usual halo returns with the hand-off
+    glow = lerp(S12_STATIC_GLOW, 1.0, smoothstep((t - S12_T_RUN) / S12_TWEEN_S)) if t >= S12_T_RUN else S12_STATIC_GLOW
+    img = common.render_run(player, _s12_camera(ctx, frame), steps_drawn=steps_drawn, ant_glow=glow)
+    onset = f.stubborn_onset
+    at_onset = step >= onset
+    common.draw_counter(img, min(step, onset), x=100, y=1180, size=60, running=not at_onset)  # freezes cream
     op, _ = card_anim(t, 50.0, HOLD)
-    common.draw_bar_chart(img, f.histogram_log_bins, box=S12_CHART_BOX,
-                          markers=[(f.longest_onset, "longest", AMBER), (f.onset, "empty grid", SECONDARY)],
-                          title=f"onset step, all {fmt_int(f.n4)} 4x4 starts", opacity=op)
-    if f.longest_origin == "adversarial":       # the first-person line only when the search produced the winner
-        card_a = [Line("I evolved starts to stall it.", "regular", 56)]
-    else:
-        card_a = [Line("The stubbornest start we found:", "regular", 52)]
-    card_a.append(Line(f.longest_source, "mono", 44, SECONDARY))
+    k = f.stubborn_k
+    common.draw_bar_chart(img, f.stubborn_hist, box=S12_CHART_BOX,
+                          markers=[(onset, "longest", AMBER), (f.onset, "empty grid", SECONDARY)],
+                          title=f"onset step, all {fmt_int(f.stubborn_n_configs)} {k}x{k} starts", opacity=op)
+    card_a, card_b = _s12_cards(f)
     op, dy = card_anim(t, 50.0, 53.5)
-    common.draw_card(img, card_a, top=250, opacity=op, dy=dy)
-    card_b = [Line(f"Longest delay: {f.longest_onset_fmt} steps.", "regular", 56)]
-    if frame >= frame_of(S12_T_ONSET):
-        card_b.append(Line("Still a road.", "bold", 84, gap_before=8))
+    common.draw_card(img, card_a, top=S12_CARD_TOP, opacity=op, dy=dy)
+    if frame < frame_of(S12_T_ONSET):
+        card_b = card_b[:1]                      # "Still a road." and the secondary lines snap in on the onset frame
     op, dy = card_anim(t, 53.5, HOLD)
-    common.draw_card(img, card_b, top=250, opacity=op, dy=dy)
+    common.draw_card(img, card_b, top=S12_CARD_TOP, opacity=op, dy=dy)
     # audio: the run's own crackle from 50.6, rub cluster with rising cutoff, clock ticks, then resolution
     events = []
-    for k in range(int((S12_T_ONSET - 50.0) / 0.5) + 1):
-        if ctx.at(frame, 50.0 + 0.5 * k) and 50.0 + 0.5 * k < S12_T_ONSET:
+    for kk in range(int((S12_T_ONSET - 50.0) / 0.5) + 1):
+        if ctx.at(frame, 50.0 + 0.5 * kk) and 50.0 + 0.5 * kk < S12_T_ONSET:
             events.append({"type": "tick"})
     if ctx.at(frame, S12_T_ONSET):
         events.append({"type": "thump"})
-    osc = [{"run": "longest", "step": step, "gain_db": -16.0}] if frame > frame_of(S12_T_RUN) else []
+    osc = [{"run": S12_RUN, "step": step, "gain_db": -16.0}] if frame > frame_of(S12_T_RUN) else []
     if at_onset:
         pad = {"chord": "highway", "cutoff": 1200.0, "detune_cents": 0.0, "gain_db": PAD_FULL_DB}
     else:
@@ -510,12 +564,174 @@ def S12(ctx, t_local, frame):
 
 
 # --------------------------------------------------------------------------
-# S13 VERDICT (57.0-62.0)
+# WALLS (57.0-62.0): STORYBOARD Appendix A insert, director's cut
 # --------------------------------------------------------------------------
 
-S13_LINE_T = (57.0, 57.4, 57.8)
+WALLS_PRE_CELLS = 40                       # follow-cam cells across before the impact (27 px/cell: the 3x3 block is an 81 px square, reviewer V5)
+WALLS_FIT_MIN_CELLS = 60                   # the post-impact bbox fit never zooms in closer than this
+WALLS_ANT_OFFSET = 12                      # cells: the ant sits this far from the frame centre, away from the block
+WALLS_SHAKE = ((14, -10), (-10, 8))        # 2-frame screen shake (px) when the block appears at +0.1
+WALLS_HIT_OUTLINE = (190, 215, 255)        # blue-white outline of the block after the impact (amber vanished in the amber chaos, reviewer V4)
+WALLS_STAGE_Y = (500, 1900)                # text-free stage after the impact: below card B (300 .. ~485)
+WALLS_REVEAL = (1.6, 2.6)                  # local s: the pull-back widens from the chaos region to blob + old road
+WALLS_HANDOFF_S = 0.6                      # follow-cam -> pull-back hand-off at the impact
+WALLS_LOOKAHEAD_F = 9                      # frames: the 0.3 s camera lag is fed the bbox this far ahead, so the exponentially accelerating road tip stays inside the fit
+WALLS_CARD_TOP = 300
+
+
+def _walls_steps(ctx) -> np.ndarray:
+    return _memo(ctx, "walls_steps", common.walls_schedule)
+
+
+def _walls_step(ctx, frame: int) -> int:
+    steps = _walls_steps(ctx)
+    return int(steps[int(clamp(frame - ctx.shot.f0, 0, len(steps) - 1))])
+
+
+def _walls_onset_frame(ctx) -> int:
+    """First absolute frame whose displayed step has passed the re-derived onset of the walls run."""
+    def derive():
+        onset = ctx.runs.onset("walls")
+        steps = _walls_steps(ctx)
+        hit = np.nonzero(steps >= onset)[0]
+        if not len(hit):
+            raise common.FactsError("walls: the rebuilt highway's onset is not reached inside the 5.0 s insert")
+        return ctx.shot.f0 + int(hit[0])
+    return _memo(ctx, "walls_onset_frame", derive)
+
+
+def _walls_block_bbox() -> tuple[int, int, int, int]:
+    cells = common.WALLS_PLACEMENT["cells"]
+    return (min(c[0] for c in cells), min(c[1] for c in cells), max(c[0] for c in cells), max(c[1] for c in cells))
+
+
+def _walls_follow(ctx, frame: int) -> Camera:
+    """Pre-impact follow-cam: 60 cells across, the ant WALLS_ANT_OFFSET cells from the centre on the
+    blob side (derived from highway_sign), so the block ahead of it sits near the centre."""
+    sx, sy = ctx.facts.highway_sign
+    ax, ay = (float(v) + 0.5 for v in ctx.runs.run("walls").pos[_walls_step(ctx, frame)])
+    px = W / WALLS_PRE_CELLS
+    return common.cam_anchor((ax, ay), (W / 2 - sx * WALLS_ANT_OFFSET * px, H / 2 + sy * WALLS_ANT_OFFSET * px), WALLS_PRE_CELLS)
+
+
+def _walls_fit_bbox(ctx, frame: int) -> np.ndarray:
+    """Target bbox after the impact: the cells modified since the contact plus the block (the chaos
+    region), widened over WALLS_REVEAL toward the bbox of everything modified (blob, old road, block,
+    new road)."""
+    run, stats = ctx.runs.run("walls"), ctx.runs.stats("walls")
+    step = _walls_step(ctx, frame)
+    contact = int(common.WALLS_PLACEMENT["contact_step"])
+    p = run.pos[max(contact - 1, 1) - 1: max(step, contact)]
+    bx0, by0, bx1, by1 = _walls_block_bbox()
+    local = np.array([min(p[:, 0].min(), bx0), min(p[:, 1].min(), by0), max(p[:, 0].max(), bx1), max(p[:, 1].max(), by1)], dtype=np.float64)
+    full = np.array(stats.bbox_at(step), dtype=np.float64)
+    t_local = (frame - ctx.shot.f0) / FPS
+    w = smoothstep((t_local - WALLS_REVEAL[0]) / (WALLS_REVEAL[1] - WALLS_REVEAL[0]))
+    return local + (full - local) * w
+
+
+def _walls_fit(bbox) -> Camera:
+    """Fit a cell bbox into the stage band: cells_across = clamp(1.3 * max(bw, bh * W / stage_h), 60, 1080)."""
+    x0, y0, x1, y1 = (float(v) for v in bbox)
+    bw, bh = x1 - x0 + 5, y1 - y0 + 5
+    sy0, sy1 = WALLS_STAGE_Y
+    ca = clamp(1.3 * max(bw, bh * W / (sy1 - sy0)), WALLS_FIT_MIN_CELLS, 1080)
+    return common.cam_anchor(((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2), (W / 2, (sy0 + sy1) / 2), ca)
+
+
+def _walls_camera(ctx, frame: int, t_local: float) -> Camera:
+    f_imp = ctx.shot.f0 + frame_of(common.WALLS_T_IMPACT)
+    if frame <= f_imp:
+        cam = _walls_follow(ctx, frame)
+    else:
+        follow = _memo(ctx, "walls_follow_at_impact", lambda: _walls_follow(ctx, f_imp))
+        f_last = ctx.shot.f1 - 1
+        fit = _walls_fit(ctx.lag.value("walls_bbox", frame, f_imp,
+                                       lambda g: _walls_fit_bbox(ctx, int(clamp(g + WALLS_LOOKAHEAD_F, f_imp + 1, f_last)))))
+        cam = common.cam_tween(follow, fit, (t_local - common.WALLS_T_IMPACT) / WALLS_HANDOFF_S)
+    f_block = ctx.shot.f0 + frame_of(common.WALLS_T_BLOCK)
+    if f_block <= frame < f_block + len(WALLS_SHAKE):             # 2-frame screen shake as the wall appears
+        dx, dy = WALLS_SHAKE[frame - f_block]
+        cell_px = W / cam.cells_across
+        cam = Camera(cam.cx - dx / cell_px, cam.cy + dy / cell_px, cam.cells_across)
+    return cam
+
+
+def _draw_block(img, cam: Camera, visible: bool, hit: bool):
+    """Before WALLS_T_BLOCK the block's cells are hidden (painted as empty grid); then an amber
+    outline marks the 3x3 block (its cells are cream because they are old ink, and stay marked
+    wherever the ant has not flipped them).  From the impact the outline is blue-white on a dark
+    halo, drawn above the age tint to the cut, so the wall stays distinguishable inside the amber
+    chaos that boils around it (reviewer V4)."""
+    bx0, by0, bx1, by1 = _walls_block_bbox()
+    x0, y0 = core.cell_to_px(cam, W, H, bx0, by1 + 1)
+    x1, y1 = core.cell_to_px(cam, W, H, bx1 + 1, by0)
+    d = ImageDraw.Draw(img)
+    if not visible:
+        d.rectangle([x0, y0, x1 - 1, y1 - 1], fill=BG)
+        return
+    cell_px = W / cam.cells_across
+    m = max(2.0, min(6.0, cell_px * 0.2))
+    if not hit:
+        d.rectangle([x0 - m, y0 - m, x1 + m, y1 + m], outline=AMBER, width=max(2, int(round(min(4.0, cell_px * 0.25)))))
+        return
+    wdt = max(3, int(round(min(4.0, cell_px * 0.25))))
+    d.rectangle([x0 - m - 1, y0 - m - 1, x1 + m + 1, y1 + m + 1], outline=PLAIN, width=wdt + 2)
+    d.rectangle([x0 - m, y0 - m, x1 + m, y1 + m], outline=WALLS_HIT_OUTLINE, width=wdt)
+
+
+def WALLS(ctx, t_local, frame):
+    t, t0 = ctx.t, ctx.shot.t0
+    f = ctx.facts
+    ob = f.obstacle
+    if not ob:
+        raise common.FactsError("movie_facts: missing required field 'adversarial.obstacle_attack' (WALLS insert)")
+    for key in ("placements", "hits", "hits_rebuilt_highway"):
+        if key not in ob:
+            raise common.FactsError(f"movie_facts: missing required field 'adversarial.obstacle_attack.{key}'")
+    player = ctx.runs.player("walls")
+    step = _walls_step(ctx, frame)
+    player.seek(step)
+    steps_drawn = step - _walls_step(ctx, frame - 1) if frame > ctx.shot.f0 else 0
+    cam = _walls_camera(ctx, frame, t_local)
+    img = common.render_run(player, cam, steps_drawn=steps_drawn)
+    f_imp, f_on = ctx.shot.f0 + frame_of(common.WALLS_T_IMPACT), _walls_onset_frame(ctx)
+    _draw_block(img, cam, visible=t_local >= common.WALLS_T_BLOCK, hit=frame >= f_imp)
+    op, dy = card_anim(t, t0, t0 + 2.5)
+    common.draw_card(img, [Line("A wall in its path?", "regular", 56)], top=WALLS_CARD_TOP, opacity=op, dy=dy)
+    op, dy = card_anim(t, t0 + 2.5, HOLD)
+    # attack A dropped its walls at lateral offsets -8..+8 cells around the highway strip: 616 of the
+    # 1,512 were in the ant's path (the hits), the rest sat beside the road (reviewer SCI-01)
+    common.draw_card(img, [Line(f"{fmt_int(ob['hits'])} hits. {fmt_int(ob['hits_rebuilt_highway'])} new roads.", "regular", 56),
+                           Line(f"{fmt_int(ob['placements'])} walls on or beside the road", "mono", 40, SECONDARY)],
+                     top=WALLS_CARD_TOP, opacity=op, dy=dy)
+    # audio: the tone runs into the wall (crackle after the contact), a thud as the wall drops, a thump on
+    # the impact; the tone returns one octave up (read heads at 2x = 440 Hz) on the re-derived onset frame
+    events = []
+    if ctx.at(frame, t0 + common.WALLS_T_BLOCK):
+        events.append({"type": "thud"})
+    if frame == f_imp:
+        events.append({"type": "thump"})
+    voice = {"run": "walls", "step": step, "gain_db": -14.0}
+    if frame >= f_on:
+        voice["rate_mult"] = 2.0
+    if frame < f_imp:
+        pad = {"chord": "highway", "cutoff": 1200.0, "detune_cents": 0.0, "gain_db": PAD_FULL_DB}
+    elif frame < f_on:
+        u = clamp((frame - f_imp) / max(1, f_on - f_imp))
+        pad = {"chord": "chaos", "cutoff": lerp(400.0, 2500.0, u), "detune_cents": 8.0 * u, "gain_db": PAD_FULL_DB}
+    else:
+        pad = {"chord": "highway_shimmer", "cutoff": 1200.0, "detune_cents": 0.0, "gain_db": PAD_FULL_DB}
+    return img, audio_state(osc=voice, pad=pad), events
+
+
+# --------------------------------------------------------------------------
+# S13 VERDICT (62.0-67.0)
+# --------------------------------------------------------------------------
+
+S13_LINE_T = tuple(common.T_S13 + d for d in (0.0, 0.4, 0.8))
 S13_LINE_Y = (520, 620, 720)
-S13_BODY_T = 59.5
+S13_BODY_T = common.T_S13 + 2.5
 S13_BODY_Y = (1000, 1090)
 S13_X = 100
 
@@ -558,10 +774,10 @@ def S13(ctx, t_local, frame):
 
 
 # --------------------------------------------------------------------------
-# S14 SCORECARD (62.0-68.0)
+# S14 SCORECARD (67.0-73.0)
 # --------------------------------------------------------------------------
 
-S14_LINE_T = (62.0, 64.0, 65.5)            # line 3 at 65.5 (not 66.0) so UNPROVEN holds >= 2 s at full opacity
+S14_LINE_T = tuple(common.T_S14 + d for d in (0.0, 2.0, 3.5))   # line 3 at +3.5 (not +4.0) so UNPROVEN holds >= 2 s at full opacity
 S14_LINE_Y = (420, 760, 1100)
 S14_X = 100
 S14_ANT_DX, S14_ANT_DY = 180, 540          # the ant's screen offset from the centre toward the highway corner: (360, 1500) for -x,-y
