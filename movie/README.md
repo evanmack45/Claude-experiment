@@ -4,16 +4,18 @@ A 79.0 s (2370-frame) 1080x1920 social-media video about Langton's Ant and the
 highway conjecture, rendered frame by frame with numpy + Pillow and encoded with
 ffmpeg (libx264 + aac).  The spec is `STORYBOARD.md` (74.0 s) plus its Appendix A
 WALLS insert (5.0 s, director's cut); every deviation from it is listed in
-`DEVIATIONS.md`, the upload text is `DESCRIPTION.md`.  Every number on screen comes
-from a facts JSON passed on the command line — nothing is hard-coded.
+`DEVIATIONS.md`, the upload text is `DESCRIPTION.md`.  Every headline number on screen
+comes from the facts JSON passed on the command line; the onset histogram is read from
+`research/results/exhaustive.json`, and the six mosaic patterns and the wall example are fixed
+records that the renderer re-simulates and asserts against their recorded onsets.
 
 ## How to render
 
-Run everything from this directory with `PYTHONPATH=/home/user/Claude-experiment/movie`
+Run everything from this directory with `PYTHONPATH=$PWD` (the `movie/` directory)
 (Python 3.11, numpy, Pillow, imageio-ffmpeg).
 
 ```bash
-cd /home/user/Claude-experiment/movie
+cd movie
 export PYTHONPATH=$PWD
 FACTS=../research/results/movie_facts.json          # verified facts (section 6 of the storyboard)
 # The dot wall and the mosaic assertions read the committed research/results/exhaustive_k4_records.npz

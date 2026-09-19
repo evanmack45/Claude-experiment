@@ -3,8 +3,8 @@
 # the current exhaust.c (05:44).  Re-run the two probe ranges with a fresh build
 # of the current source and compare hist.bin byte-for-byte and the summaries.
 set -e
-H=/home/user/Claude-experiment/research/verify/exhaustive-review
-E=/home/user/Claude-experiment/research/exhaustive
+H="$(cd "$(dirname "$0")" && pwd)"
+E="$H/../../exhaustive"
 $H/build/exhaust 5 0 131072 5000000 $H/out/probe_a 0 2>/dev/null
 $H/build/exhaust 5 16777216 16908288 5000000 $H/out/probe_b 0 2>/dev/null
 for p in a b; do

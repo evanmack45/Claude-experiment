@@ -2,7 +2,7 @@
 """Independent statistics (min/mean/median/max/mode/log-bins) from the finder's raw hist.bin
 files, to check analyze.py's arithmetic separately from the simulation."""
 import numpy as np, os, json, math
-F = "/home/user/Claude-experiment/research/exhaustive/out"
+F = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "exhaustive", "out")
 parts = {1: ["k1"], 2: ["k2"], 3: ["k3"], 4: ["k4"], 5: ["k5/half0", "k5/half1"]}
 def stats(h):
     n = int(h.sum()); s = np.arange(h.size, dtype=np.int64)

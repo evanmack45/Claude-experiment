@@ -1,7 +1,7 @@
 # SCENES_CONTRACT — what a scene module must provide
 
 Read this file, `common.py`, `core.py` and `STORYBOARD.md`. Nothing else is needed.
-Run everything from `movie/` with `PYTHONPATH=/home/user/Claude-experiment/movie`.
+Run everything from `movie/` with `PYTHONPATH=$PWD`.
 
 ## 1. File ownership
 

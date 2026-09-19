@@ -18,7 +18,7 @@ def cfg(k, p, seed, idx):
         s, r = sm(s)
         if (r >> 11) / 2.0**53 < p: out.append([xmin + i % k, xmin + i // k])
     return out
-F = '/home/user/Claude-experiment/research/random'
+F = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'random')
 nbad = 0; ntest = 0
 for (k, p, seed, idx) in [(5, 0.1, 20260919, 0), (8, 0.9, 20260919, 9999), (64, 0.75, 20260919, 4491), (7, 0.5, 1, 3), (512, 0.5, 20260921, 9269), (32, 0.05, 20260922, 7434), (64, 0.9, 20260920, 96681)]:
     mine = cfg(k, p, seed, idx)
@@ -27,7 +27,7 @@ for (k, p, seed, idx) in [(5, 0.1, 20260919, 0), (8, 0.9, 20260919, 9999), (64, 
     ntest += 1
     if not (mine == a == b): nbad += 1; print('RNG MISMATCH', k, p, seed, idx, len(mine), len(a), len(b))
 print('RNG: %d configs compared python vs randexp dump vs mysim dump, %d mismatches' % (ntest, nbad))
-L = json.load(open('/home/user/Claude-experiment/research/results/random_longest.json'))
+L = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'results', 'random_longest.json')))
 print('random_longest.json cells == my python regen:', L['black_cells'] == cfg(L['k'], L['p'], L['seed'], L['sample_index']), 'n', len(L['black_cells']), L['n_black'])
 # box definition check: for k=5 cells in [-2,2]^2, for k=8 in [-4,3]^2
 for k in (5, 8, 64, 512):

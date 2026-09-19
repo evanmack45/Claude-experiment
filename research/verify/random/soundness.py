@@ -5,9 +5,17 @@ stop, and check that the post-hoc onset s is unchanged and that no turn mismatch
 after s over the whole extended run. Usage: python3 soundness.py [nsamples] [rngseed]"""
 import csv, json, random, subprocess, sys, os
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 200; rs = int(sys.argv[2]) if len(sys.argv) > 2 else 12345
+HERE = os.path.dirname(os.path.abspath(__file__)); os.chdir(HERE)
+RAND = os.path.join(HERE, '..', '..', 'random')
 rows = []
-for f in ('procA.csv', 'procB.csv'):
-    rows += list(csv.reader(open('/home/user/Claude-experiment/research/random/out/' + f)))
+if all(os.path.exists(os.path.join(RAND, 'out', f)) for f in ('procA.csv', 'procB.csv')):
+    for f in ('procA.csv', 'procB.csv'):
+        rows += list(csv.reader(open(os.path.join(RAND, 'out', f))))
+else:  # fresh clone: the committed merged main-sweep rows (same first 8 columns, with a header)
+    rows = [r for r in csv.reader(open(os.path.join(HERE, '..', '..', 'results', 'random_samples.csv'))) if r and r[0] != 'k']
+if not os.path.exists('./mysim2'):
+    subprocess.check_call(['gcc', '-O3', '-march=native', '-o', 'mysim2', 'mysim.c', '-lm'])
+os.makedirs('out', exist_ok=True)
 random.seed(rs); sub = random.sample(rows, n)
 bad = 0; tot_periods = 0
 for r in sub:

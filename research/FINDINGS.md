@@ -197,8 +197,9 @@ byte-identical).
   the pull request). Second caveat, found by verifier 2: the seed
   multiplier in `randexp.c` equals the splitmix64 increment, so the "extra seeds" 20260920-22
   are the main stream shifted by 1-3 outputs; overlapping (k,p) cells contain raster-shifted
-  copies of main-sweep configurations. They are distinct, valid Bernoulli(p) boxes and their
-  onsets are uncorrelated with the originals (pair correlation 0.003-0.02, same as control), so
+  copies of main-sweep configurations. They are valid Bernoulli(p) draws (not necessarily distinct
+  from one another or from the main sweep: k = 5, p = 0.1, sample 6 is the empty pattern under
+  both seed 20260919 and seed 20260920) and their onsets are uncorrelated with the originals (pair correlation 0.003-0.02, same as control), so
   the counts stand, but the sweeps are not independent replicates.
 * Scaling at p = 0.5: median onset 2084.5 (k=5), 2676, 3458.5, 4267.5, 5980.5, 7801.5, 11037,
   15472 (k=64); log-log slope 0.788 over all k, 0.953 for k >= 24. Scaling sweep (seed
@@ -265,7 +266,8 @@ with its own simulator, re-implemented the D chain from scratch, and found 0 mis
 ## 4. What this evidence does and does not say
 
 It says: in roughly 41.8 million simulated runs (33.6 M exhaustive + 4.73 M random + ~3.48 M
-adversarial), covering every pattern in a 5 x 5 box, random boxes up to 512 x 512, structured
+adversarial; at most 40,395,921 distinct starting patterns, since the small boxes are nested in
+the 5 x 5 box, the 5 x 5 random draws are all 5 x 5 patterns, and GA genomes repeat), covering every pattern in a 5 x 5 box, random boxes up to 512 x 512, structured
 seeds, obstacles dropped on running highways, and millions of hill-climb mutations, **not one
 run failed to reach a certified 104-step highway**, and the longest run used 6.7% of its step cap
 (1,337,591 of 20,000,000 steps; every other run used less). The typical onset in a random box grows only about linearly with the box side,

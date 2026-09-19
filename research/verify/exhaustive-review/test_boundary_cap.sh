@@ -6,8 +6,8 @@
 #      (BOUNDARY) at exactly the step where the independent simulator first reaches
 #      relative x<=-32, x>=31, y<=-32 or y>=31 -- no silent wrap/clip.
 set -e
-H=/home/user/Claude-experiment/research/verify/exhaustive-review
-cd $H
+H="$(cd "$(dirname "$0")" && pwd)"
+cd "$H"
 sed 's/#define GRID 4096/#define GRID 64/' build/exhaust_copy.c > build/exhaust_g64.c
 gcc -O3 -o build/exhaust_g64 build/exhaust_g64.c 2>/dev/null
 echo "== (1) cap=100, empty grid"; build/exhaust 1 0 1 100 out/cap100 1 2>/dev/null; cat out/cap100_records.csv
@@ -17,8 +17,8 @@ echo "== (2b) cap=12336"; build/exhaust 1 0 1 12336 out/cap12336 1 2>/dev/null; 
 echo "== (3) GRID=64 copy, k=3 all 512 configs"; build/exhaust_g64 3 0 512 5000000 out/g64_k3 1 2>/dev/null
 python3 - <<'PY'
 import csv, sys
-sys.path.insert(0, "/home/user/Claude-experiment/research/verify/exhaustive-review"); import indep_sim as I
-rows = list(csv.DictReader(open("/home/user/Claude-experiment/research/verify/exhaustive-review/out/g64_k3_records.csv")))
+sys.path.insert(0, "."); import indep_sim as I
+rows = list(csv.DictReader(open("out/g64_k3_records.csv")))
 nb = 0; bad = 0; ncert = 0
 for r in rows:
     cfg = int(r["cfg"]); cells = I.cells_of(3, cfg)

@@ -5,8 +5,9 @@ the age-tint "newest ink glows" palette, the turn-stream oscillator and the 104-
 barcode lock (proposal 2); PROVEN/OPEN pills, the real onset histogram, the 60 % contrast cap
 in chaos, the three-phase rule animation (proposal 1); the "N tested / N highways / 0 exceptions /
 evidence, not a proof" verdict (proposal 2). Every fatal flaw the judges found is fixed in place
-(see section 8). Every number on screen comes from `research/results/movie_facts.json`; nothing is
-hard-coded (section 6). Every text line below was measured with the real font files (section 2.4).
+(see section 8). Every headline number on screen comes from `research/results/movie_facts.json` (section 6);
+the histogram is read from `exhaustive.json`, and the mosaic/wall example patterns are fixed
+records the renderer re-simulates and asserts (as built). Every text line below was measured with the real font files (section 2.4).
 
 ---
 

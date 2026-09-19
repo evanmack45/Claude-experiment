@@ -285,7 +285,10 @@ def S10(ctx, t_local, frame):
     op, dy = card_anim(t, 38.0, 41.0)      # the film's only first-person line (director's cut)
     common.draw_card(img, [Line(f"I tested it {ctx.facts.total_tested_fmt} times.", "regular", 56)], top=250, opacity=op, dy=dy)
     op, dy = card_anim(t, 41.0, HOLD)
-    common.draw_card(img, [Line("Every one built a road.", "regular", 52),
+    f = ctx.facts
+    first = ("Every one built a road." if f.exceptions == 0
+             else f"{fmt_int(f.total_highway)} of {f.total_tested_fmt} built a road.")   # honesty rule
+    common.draw_card(img, [Line(first, "regular", 52),
                            Line("Nobody can prove it always will.", "regular", 52)], top=250, opacity=op, dy=dy)
     # audio: one crackle voice per running tile, blips ascending in certification order
     voices = [{"run": f"mosaic{i}", "step": _tile_step(ctx, i, frame), "gain_db": -26.0}
@@ -767,11 +770,12 @@ S13_X = 100
 
 
 def _s13_lines(f) -> list[Line]:
-    """The three verdict lines (honesty rule: cap hits -> 'N still unresolved.' in red)."""
+    """The three verdict lines (honesty rule: any non-certified run -> 'N still unresolved.' in red,
+    where N counts every run that did not certify, cap hits included)."""
     l1 = Line(f"{f.total_tested_fmt} runs tested.", "mono", 64)   # runs: nested boxes / repeat genomes are counted
     l2 = Line(f"{fmt_int(f.total_highway)} highways.", "mono", 64)
-    if f.cap_hits > 0:
-        l3 = Line(f"{fmt_int(f.cap_hits)} still unresolved.", "mono", 64, RED)
+    if f.exceptions > 0:
+        l3 = Line(f"{fmt_int(f.exceptions)} still unresolved.", "mono", 64, RED)
     else:
         n = fmt_int(f.exceptions)
         l3 = Line(f"{n} exceptions.", "mono", 64, spans={n: AMBER})

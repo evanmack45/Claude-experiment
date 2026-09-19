@@ -5,7 +5,7 @@ copied from `research/exhaustive/`.
 
 ## One-command reproduction
 
-    sh /home/user/Claude-experiment/research/verify/exhaustive/run_all.sh
+    sh research/verify/exhaustive/run_all.sh
 
 (~4 s for k<=4, ~20-25 min wall for the full k=5 enumeration on two processes.)
 

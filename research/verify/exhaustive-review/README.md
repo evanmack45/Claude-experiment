@@ -3,7 +3,7 @@
 Reviewer: independent code review + small targeted tests.  Nothing under
 `research/exhaustive/` was modified; `exhaust.c` is compiled from a copy in `build/`.
 
-Reproduce everything: `sh /home/user/Claude-experiment/research/verify/exhaustive-review/run_all.sh`
+Reproduce everything: `sh research/verify/exhaustive-review/run_all.sh`
 (~2 minutes, at most 2 processes).  Outputs land in `out/`.
 
 ## Files

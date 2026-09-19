@@ -2,7 +2,7 @@
 """Compare my full k=5 enumeration (out/k5/h0.rec, h1.rec) with the finder's outputs."""
 import numpy as np, json, os
 HERE = os.path.dirname(os.path.abspath(__file__))
-F = "/home/user/Claude-experiment/research/exhaustive/out/k5"
+F = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "exhaustive", "out", "k5")
 dt = np.dtype([("s", "<u4"), ("cert", "<u4"), ("altcert", "<u4"), ("dx", "i1"), ("dy", "i1"), ("dir", "i1"), ("status", "i1")])
 CAP = 5000000
 h0 = np.fromfile(os.path.join(HERE, "out/k5/h0.rec"), dtype=dt); h1 = np.fromfile(os.path.join(HERE, "out/k5/h1.rec"), dtype=dt)
@@ -37,7 +37,7 @@ print("n configs where altcert (bbox without unvisited initial cells) != cert:",
 edges = sorted(set(int(round(10 ** (j / 10))) for j in range(0, 71)))
 lb = [(a, b, int(myhist[a:b].sum())) for a, b in zip(edges, edges[1:]) if myhist[a:b].sum()]
 print("modal log bin:", max(lb, key=lambda z: z[2]), " top bin:", lb[-1], " number of nonempty bins:", len(lb))
-fin = json.load(open("/home/user/Claude-experiment/research/results/exhaustive.json"))["results"]["k5"]["histogram_log_bins"]
+fin = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "exhaustive.json")))["results"]["k5"]["histogram_log_bins"]
 print("log bins identical to finder JSON:", [(b["lo"], b["hi"], b["count"]) for b in fin] == lb)
 # literal python sample
 samp = json.load(open(os.path.join(HERE, "out/k5_sample_literal.json")))

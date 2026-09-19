@@ -413,8 +413,8 @@ def load_facts(path: str) -> Facts:
     rnd = _get(raw, "random")
     for f in ("total_tested", "total_highway", "longest_onset", "longest_config"):
         _get(raw, f"random.{f}")
-    if int(rnd["total_highway"]) > int(rnd["total_tested"]):
-        raise FactsError("movie_facts: random.total_highway exceeds random.total_tested")
+    if not (0 <= int(rnd["total_highway"]) <= int(rnd["total_tested"])):
+        raise FactsError("movie_facts: random.total_highway must lie in 0..random.total_tested")
     adv = raw.get("adversarial")
     if adv is not None:
         for f in ("longest_onset", "cap_hits", "n_tested"):

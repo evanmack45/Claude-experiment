@@ -428,7 +428,7 @@ FONTS = _FontTable()
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
     key = (name, size)
     if key not in _font_cache:
-        path = FONTS.get(name, None) or name
+        path = find_font_file(_FONT_FILES[name]) if name in _FONT_FILES else name   # raises FileNotFoundError with the search list
         _font_cache[key] = ImageFont.truetype(path, size)
     return _font_cache[key]
 

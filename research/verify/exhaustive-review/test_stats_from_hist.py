@@ -2,8 +2,9 @@
 """Recompute every statistic in claims C7/C8/C9/C10/C11 directly from the raw
 hist.bin / summary files with code independent of analyze.py."""
 import json, os, numpy as np
-E = "/home/user/Claude-experiment/research/exhaustive/out"
-J = json.load(open("/home/user/Claude-experiment/research/results/exhaustive.json"))
+_H = os.path.dirname(os.path.abspath(__file__))
+E = os.path.join(_H, "..", "..", "exhaustive", "out")
+J = json.load(open(os.path.join(_H, "..", "..", "results", "exhaustive.json")))
 parts = {1: ["k1"], 2: ["k2"], 3: ["k3"], 4: ["k4"], 5: ["k5/half0", "k5/half1"]}
 expect = {1: (9977, 9977.5, 9977.5, 9978), 2: (275, 7234.06, 9976.5, 11386), 3: (200, 4327.80, 2374.5, 43264),
           4: (155, 3797.99, 1736.5, 119673), 5: (32, 4250.45, 2059.0, 233232)}

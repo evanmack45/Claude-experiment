@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
-D=/home/user/Claude-experiment/research/verify/exhaustive
-cd "$D"; mkdir -p out/k5
+cd "$(dirname "$0")"; mkdir -p out/k5
 gcc -O3 -march=native -Wno-misleading-indentation -o vexh vexh.c
 ./vexh 1 0 2 5000000 out/k1; ./vexh 2 0 16 5000000 out/k2; ./vexh 3 0 512 5000000 out/k3; ./vexh 4 0 65536 5000000 out/k4
 ./vexh 5 0 16777216 5000000 out/k5/h0 2> out/k5/h0.log &
