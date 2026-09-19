@@ -35,7 +35,7 @@ def S07(ctx, t_local: float, frame: int) -> tuple[PIL.Image.Image, dict, list]:
   * `ctx.runs.turns(rid)` → uint8 array, `turns[k-1]` is step k (1 = R, 0 = L). `ctx.runs.onset(rid)` → onset step (asserted against the facts / k4_records).
   * `ctx.runs.run(rid)` → `core.AntRun` (`pos[k]` = ant after k steps, `dir[k]`).
 * `ctx.schedule` / `ctx.step_at(frame)` — displayed step of the empty-grid run per absolute frame (STORYBOARD 3.1, frame-exact: frame 15 and 480 = onset, S07/S08 = +104 per frame, S14 = +10 per frame, S15 mirrors S01). `ctx.steps_drawn(frame)` = steps advanced since the previous frame (pass it to `render_run` for the contrast cap).
-* `ctx.k4` — `{"cfg", "status", "s"}` int arrays sorted by config index from `k4_records.csv` (`status == 0` = certified). Use for the dot wall.
+* `ctx.k4` — `{"cfg", "status", "s"}` int arrays sorted by config index from `k4_records.csv` (`status == 0` = certified). Use for the dot wall; `ctx.runs` asserts every mosaic tile's onset against it.
 * `ctx.preview` — True on half-resolution preview renders (do not change the picture, only optional shortcuts).
 * `ctx.shot` — `id, t0, t1, f0, f1`; `ctx.local_frame(frame)`.
 
@@ -57,7 +57,7 @@ def S07(ctx, t_local: float, frame: int) -> tuple[PIL.Image.Image, dict, list]:
 * `fmt_int(n)` — thousands separators. Palette constants: `BG GAP VISITED CREAM AMBER BLUE GREEN RED SECONDARY PLAIN`; safe zone `SAFE_X0..SAFE_Y1`, `SAFE_CX = 520`.
 
 ### 3.4 Camera helpers
-* `cam_static(cx, cy, cells_across)`, `cam_follow(player, cells_across)`, `cam_tween(a, b, u)` (smoothstep, geometric zoom), `cam_pullback(ant_xy, blob_cxy)` (auto pull-back rule 2.5), `cam_autofit(bbox)` (auto-fit rule 2.5).
+* `cam_static(cx, cy, cells_across)`, `cam_follow(player, cells_across)`, `cam_tween(a, b, u)` (smoothstep, geometric zoom), `cam_pullback(ant_xy, blob_cxy)` (auto pull-back rule 2.5), `cam_anchor(cell_xy, screen_xy, cells_across)` (put a cell point on a screen point; S12's stage fit is `scenes_evidence._s12_fit` on top of it).
 * `ctx.lag.value(key, frame, f0, target_fn)` — 0.3 s exponential lag of any vector, replayed deterministically from frame `f0` (use `ctx.shot.f0`); e.g. `cx, cy = ctx.lag.value("s05_center", frame, ctx.shot.f0, lambda f: stats.centroid_at(ctx.step_at(f)))`.
 * Camera centres in S01/S07/S08/S15 must be derived from `ctx.facts.highway_sign`, not hard-coded.
 

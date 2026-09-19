@@ -96,7 +96,7 @@ class Ctx:
     shot      : the current Shot (id, t0, t1, f0, f1)
     t         : absolute time of the current frame (s)
     preview   : True when rendering the half-resolution preview
-    k4        : lazily loaded k4 records {'cfg', 'status', 's'} (dot wall)
+    k4        : the k4 records {'cfg', 'status', 's'} shared with runs (dot wall)
     """
 
     def __init__(self, facts: common.Facts, preview: bool):
@@ -107,17 +107,12 @@ class Ctx:
         self.shot: Shot | None = None
         self.t = 0.0
         self.preview = preview
-        self._k4 = None
         self._backdrops: dict = {}
 
     # --- data ---------------------------------------------------------------
     @property
     def k4(self) -> dict:
-        if self._k4 is None:
-            if not self.facts.k4_records_csv:
-                raise common.FactsError("movie_facts: missing required field 'k4_records_csv'")
-            self._k4 = common.load_k4_records(self.facts.k4_records_csv)
-        return self._k4
+        return self.runs.k4()
 
     def step_at(self, frame: int) -> int:
         """Displayed step of the empty-grid run at an absolute frame."""
@@ -251,8 +246,9 @@ def main(argv=None):
     os.makedirs(os.path.dirname(os.path.abspath(args.timeline)), exist_ok=True)
     with open(args.timeline, "w") as fh:
         json.dump(timeline, fh)
-    log_path = os.path.join(common.BUILD_DIR, "text_shrinks.log")
+    log_path = os.path.splitext(args.timeline)[0] + "_shrinks.log"   # next to the timeline: partial renders never wipe the full film's log
     with open(log_path, "w") as fh:
+        fh.write(f"# text shrinks of {args.out} (frames {frames[0]}-{frames[-1]}, facts {args.facts})\n")
         fh.write("\n".join(common.SHRINK_LOG) + ("\n" if common.SHRINK_LOG else ""))
     print(f"[render] wrote {args.out} ({writer.n} frames), timeline {args.timeline}, "
           f"{len(common.SHRINK_LOG)} text shrinks (see {log_path})")

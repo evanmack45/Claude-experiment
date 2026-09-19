@@ -7,7 +7,7 @@
   S06 freeze          frozen at the onset: 2 % push-in, pulsing amber ring, hard silence
   S07 the road        104 steps per frame, follow-cam then pull-back, frozen barcode
   S08 to infinity     auto pull-back to ~1 px/cell, PROVEN pill
-  S15 CTA             mirrors S01, decelerating plucks, fade to plain
+  S15 CTA             mirrors S01, decelerating plucks, fade to plain (complete on the last frame)
 
 Every number on screen comes from ctx.facts or the step schedule (SCENES_CONTRACT 3.1);
 the camera centres of S01/S07/S08/S15 are derived from ctx.facts.highway_sign.
@@ -38,6 +38,14 @@ PLUCK_MAX_RATE = 20.0                # steps/s: plucks below, turn-stream oscill
 XFADE_S = 0.5                        # pluck <-> oscillator crossfade
 S04_PLUCK_END = 7.0 + 3.0 * math.log(PLUCK_MAX_RATE / 2.0) / math.log(30.0)   # r(t) = 2*30^((t-7)/3) hits 20
 S15_DECEL = ((4.0, 4.4, 3000.0, 8.0), (4.4, 5.5, 8.0, 2.0))  # (t0, t1, r0, r1) local s, exponential legs
+S15_DRIFT = (2.0, 3.0)               # local s: the camera leaves the S01 framing at 70.0 and settles on the ant at 71.0 (a 2 s drift lets the ant touch the frame edge)
+S15_LOCK = S15_DECEL[0][0]           # local s: the camera stops following at 72.0, the ant then hops in view
+S15_TIP_CELLS = 90                   # cells across once settled (12 px/cell: single steps are visible)
+S15_TIP_SCREEN = (W / 2, 820)        # the ant's screen position once settled: the text-free band between the cards
+S15_DRIFT_CTRL = (110, 780)          # Bezier control: the ant travels up the left edge, clear of the sub-lines band
+S15_SUB_TOP = 1000                   # sub-lines band top (the blob sits at y ~675-945 under the hook camera)
+S15_FADE_LOCAL = 5.5                 # local s: the fade to plain starts here and completes on the last frame (2219)
+HOLD = 1e9                           # card end time "hold to the hard cut"
 
 
 def _rate_crossing(legs, rate: float) -> float:
@@ -76,24 +84,6 @@ def _label(img: Image.Image, text: str, x: float, y: float, *, size: int = 40, c
                         fill=(*PLAIN, int(common.BAND_ALPHA * a)))
     d.text((x, y - th / 2), text, font=fnt, fill=(*color, a))
     img.paste(layer, (0, 0), layer)
-
-
-def _pill_card(img: Image.Image, kind: str, lines: list[Line], *, top: float, opacity: float, dy: float):
-    """Band spanning the safe width (x 80..960, centred on 520) with a pill at x = 100
-    above left-aligned lines (the pill plus the line do not fit side by side)."""
-    if opacity <= 0:
-        return
-    pill_h = sum(core.font("bold", 56).getmetrics()) + 16
-    text_h = 0.0
-    for ln in lines:
-        fnt, _ = common.fit_font(ln.role, ln.size, ln.text)
-        text_h += sum(fnt.getmetrics()) * common.LINE_SPACING + ln.gap_before
-    gap = 12
-    bh = common.BAND_PAD + pill_h + gap + text_h + common.BAND_PAD
-    y0 = top + dy
-    core.draw_rect(img, [common.SAFE_X0, y0, common.SAFE_X1, y0 + bh], PLAIN, common.BAND_ALPHA * opacity, radius=common.BAND_RADIUS)
-    common.draw_pill(img, kind, 100, y0 + common.BAND_PAD, opacity)
-    common.draw_card(img, lines, top=y0 + pill_h + gap, x_left=100, align="left", opacity=opacity, band=False)
 
 
 def _draw_ant_chevron(img: Image.Image, px: float, py: float, angle: float, cell_px: float):
@@ -168,6 +158,32 @@ def _hook_camera(ctx) -> Camera:
     """S01 / S15: static, 180 cells across, centred 25 cells toward the highway corner."""
     sx, sy = ctx.facts.highway_sign
     return common.cam_static(25 * sx, 25 * sy, 180)
+
+
+def _s15_camera(ctx, frame: int, t_local: float) -> Camera:
+    """S15: the S01 camera until 70.0 s (frames 2040-2100 mirror S01); then a 1 s smoothstep
+    drift that carries the ant from where the hook framing shows it at 70.0 along a quadratic
+    Bezier (up the left edge, clear of the sub-lines band) to the centre of the text-free band
+    while zooming 180 -> 90 cells; the camera follows the ant until 72.0 and then locks, so the
+    decelerating steps are seen as the ant hopping cell by cell (the ant leaves the static hook
+    frame at ~69.9 s, before the audible slow-down)."""
+    hook = _hook_camera(ctx)
+    d0, d1 = S15_DRIFT
+    if t_local <= d0:
+        return hook
+    sched = _s15_schedule(ctx)
+    pos = ctx.runs.run("empty").pos
+
+    def ant_at(f):
+        return tuple(float(v) + 0.5 for v in pos[int(sched[f - ctx.shot.f0])])
+
+    ant = ant_at(min(frame, frame_of(68.0 + S15_LOCK)))
+    e = smoothstep((t_local - d0) / (d1 - d0))
+    ca = math.exp(lerp(math.log(hook.cells_across), math.log(S15_TIP_CELLS), e))
+    p0 = core.cell_to_px(hook, W, H, *ant_at(frame_of(68.0 + d0)))
+    w0, w1, w2 = (1 - e) ** 2, 2 * e * (1 - e), e ** 2
+    target = tuple(w0 * p0[i] + w1 * S15_DRIFT_CTRL[i] + w2 * S15_TIP_SCREEN[i] for i in range(2))
+    return common.cam_anchor(ant, target, ca)
 
 
 def _demo_camera() -> Camera:
@@ -415,7 +431,8 @@ def S04(ctx, t_local, frame):
                            Line("The whole program.", "regular", 56),
                            Line("no randomness. no lookahead.", "mono", 44, SECONDARY, gap_before=16)],
                      top=300, opacity=op, dy=dy)
-    common.draw_counter(img, step, running=True, opacity=op)
+    op_counter, _ = card_anim(ctx.t, 7.0, HOLD)          # no fade-out: the counter continues into S05
+    common.draw_counter(img, step, running=True, opacity=op_counter)
     # audio: plucks per step until 20 steps/s, then a 0.5 s crossfade into the turn stream
     events = _demo_events(ctx, frame, 9, 9)            # step 9's flip click lands at 7.02 s
     xf = clamp((ctx.t - S04_PLUCK_END) / XFADE_S)
@@ -472,23 +489,29 @@ def S06(ctx, t_local, frame):
 
 
 def S07(ctx, t_local, frame):
-    """THE ROAD: 104 steps per frame; follow-cam, then pull-back; frozen barcode of the last 208 turns."""
+    """THE ROAD: 104 steps per frame; follow-cam, then pull-back; frozen barcode of the last 208
+    highway turns (frame 600 resumes at the onset, so the window is full from frame 602)."""
     step = ctx.step_at(frame)
     player = ctx.runs.player("empty")
     player.seek(step)
     cam = _s07_camera(ctx, player, t_local)
-    img = common.render_run(player, cam, steps_drawn=ctx.steps_drawn(frame))
+    # 104 steps per frame > 100 for the whole shot, including frame 600 (the schedule holds the
+    # onset there, so steps_drawn would be 0 on the onset frame alone): cap explicitly
+    img = common.render_run(player, cam, steps_drawn=ctx.steps_drawn(frame), contrast_cap=True)
     period = ctx.facts.period
     op, dy = card_anim(ctx.t, 20.0, 23.0)
     common.draw_card(img, [Line("Then: a road.", "bold", 96)], top=300, opacity=op, dy=dy)
     op, dy = card_anim(ctx.t, 23.5, 27.0)
     common.draw_card(img, [Line(f"{period} steps. Repeats forever.", "regular", 56)], top=300, opacity=op, dy=dy)
-    common.draw_counter(img, step, y=1380, size=48, running=True, suffix=f" · period {period}")
-    common.draw_turn_strip(img, ctx.runs.turns("empty"), step, bracket=period, label=f"{period} turns")
+    op_band, _ = card_anim(ctx.t, 20.0, 27.0)            # counter + strip: fade in while the first two windows fill, fade out into S08
+    common.draw_counter(img, step, y=1380, size=48, running=True, suffix=f" · period {period}", opacity=op_band)
+    common.draw_turn_strip(img, ctx.runs.turns("empty"), step, bracket=period, label=f"{period} turns",
+                           opacity=op_band, first_step=ctx.facts.onset)
     events = []
-    if ctx.at(frame, 20.0):
+    on_onset = ctx.at(frame, 20.0)
+    if on_onset:
         events.append({"type": "thump"})
-    if frame % FPS == 0:
+    if frame % FPS == 0 and not on_onset:                # the once-per-second kick never stacks on the onset thump
         events.append({"type": "kick"})
     state = audio_state(osc={"run": "empty", "step": step, "gain_db": -14.0},
                         pad={"chord": "highway", "cutoff": 1200.0, "detune_cents": 0.0})
@@ -504,9 +527,9 @@ def S08(ctx, t_local, frame):
     op, dy = card_anim(ctx.t, 27.0, 30.0)
     common.draw_card(img, [Line("It never turns back.", "bold", 72)], top=300, opacity=op, dy=dy)
     op, dy = card_anim(ctx.t, 30.0, 33.0, snap_out=True)
-    _pill_card(img, "PROVEN", [Line("No finite start can trap the ant.", "regular", 48),
-                               Line("Bunimovich & Troubetzkoy, 1992", "mono", 40, SECONDARY)],
-               top=300, opacity=op, dy=dy)
+    common.draw_pill_card(img, "PROVEN", [Line("No finite start can trap the ant.", "regular", 48),
+                                          Line("Bunimovich & Troubetzkoy, 1992", "mono", 40, SECONDARY)],
+                          top=300, opacity=op, dy=dy)
     events = []
     if ctx.at(frame, 27.0):
         events.append({"type": "riser", "dur": 3.0})
@@ -518,26 +541,28 @@ def S08(ctx, t_local, frame):
 
 
 def S15(ctx, t_local, frame):
-    """CTA: the hook replays (same camera, same run); the tone hands over to slowing plucks; fade to plain."""
+    """CTA: the hook replays (same camera and run until 70.0, then a drift onto the ant); the tone
+    hands over to slowing plucks; fade to plain."""
     sched = _s15_schedule(ctx)
     i = ctx.local_frame(frame)
     step = int(sched[i])
     player = ctx.runs.player("empty")
     player.seek(step)
-    img = common.render_run(player, _hook_camera(ctx), steps_drawn=step - int(sched[i - 1]) if i > 0 else 0)
+    img = common.render_run(player, _s15_camera(ctx, frame, t_local),
+                            steps_drawn=step - int(sched[i - 1]) if i > 0 else 0)
     op, dy = card_anim(ctx.t, 68.2, 74.0, snap_out=True)
-    box = common.draw_card(img, [Line("Can YOU find a start", "bold", 72), Line("that never", "bold", 72),
-                                 Line("builds a road?", "bold", 72)], top=300, opacity=op, dy=dy)
-    q_bottom = box[3] - dy if box else 646
+    common.draw_card(img, [Line("Can YOU find a start", "bold", 72), Line("that never", "bold", 72),
+                           Line("builds a road?", "bold", 72)], top=300, opacity=op, dy=dy)
     op, dy = card_anim(ctx.t, 68.6, 74.0, snap_out=True)
     common.draw_card(img, [Line("Any finite start counts.", "regular", 48), Line("Proof or counterexample?", "regular", 48),
-                           Line("Argue in the comments.", "regular", 48)], top=q_bottom + 14, opacity=op, dy=dy)
+                           Line("Argue in the comments.", "regular", 48)], top=S15_SUB_TOP, opacity=op, dy=dy)
     op, dy = card_anim(ctx.t, 69.0, 74.0, snap_out=True)
     common.draw_card(img, [Line("made by Claude (an AI)", "mono", 40, SECONDARY),
                            Line("github: evanmack45/Claude-experiment", "mono", 38, SECONDARY)],
                      top=1380, opacity=op, dy=dy)
-    if t_local >= 5.5:
-        img = Image.blend(img, Image.new("RGB", img.size, PLAIN), clamp((t_local - 5.5) / 0.5))
+    f_fade, f_last = frame_of(68.0 + S15_FADE_LOCAL), ctx.shot.f1 - 1
+    if frame >= f_fade:                                  # fade to plain, reaching 100 % on the last frame
+        img = Image.blend(img, Image.new("RGB", img.size, PLAIN), clamp((frame - f_fade) / (f_last - f_fade)))
     # audio: crackle -> tone on the onset frame, A major pad, tone -> plucks from ~72.7 s, silence after 73.5
     events = [{"type": "thump"}] if ctx.at(frame, 68.5) else []
     xf = clamp((t_local - S15_PLUCK_START) / XFADE_S)

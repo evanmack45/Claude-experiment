@@ -81,8 +81,9 @@ TEXT_DRIFT = 12             # px upward drift on fade in
 
 
 def frame_of(t: float) -> int:
-    """Frame index of absolute time t (STORYBOARD: frame = round(t*30))."""
-    return int(round(t * FPS))
+    """Frame index of absolute time t (STORYBOARD: frame = round(t*30)); half-up rounding
+    (never banker's rounding) so a future .5 tie such as 7.35 s cannot map one frame early."""
+    return int(math.floor(t * FPS + 0.5 + 1e-9))
 
 
 def fmt_int(n: int) -> str:
@@ -227,17 +228,96 @@ MOSAIC_TILES = [
 ]
 
 
+# Priority on an exact onset tie between candidates for {LONGEST_ONSET}: an exhaustive
+# maximum is a provable statement about its box, a random sample is an unbiased draw, and a
+# search that only re-found one of them added nothing - so exhaustive > random > adversarial.
+_ORIGIN_PRIORITY = {"exhaustive": 3, "random": 2, "adversarial": 1}
+
+_RANDOM_SUMMARY_RE = re.compile(
+    r"k=(?P<k>\d+),\s*p=(?P<p>[0-9.]+),\s*seed\s+(?P<seed>\d+),\s*sample_index\s+(?P<index>\d+),\s*(?P<n_black>\d+)\s+black cells")
+
+
+def _load_results_json(raw: dict, section: str, default: str) -> dict:
+    """Open the research result file a facts section points to (`<section>.source`)."""
+    rel = raw.get(section, {}).get("source", default) if isinstance(raw.get(section), dict) else default
+    path = rel if os.path.isabs(rel) else os.path.join(REPO_DIR, rel)
+    if not os.path.exists(path):
+        raise FactsError(f"movie_facts: '{section}.source' file not found: {path}")
+    with open(path) as fh:
+        return json.load(fh)
+
+
+def adapt_verified_schema(raw: dict) -> dict:
+    """Map the verified research/results/movie_facts.json layout onto the STORYBOARD
+    section-6 field names.  Explicit, one-way, and it never invents a number:
+
+      exhaustive.kN -> exhaustive.N (non-dict bookkeeping keys dropped), n_cap -> cap_hits;
+      exhaustive.4.histogram_log_bins and k4_records_csv, when absent, are read from the
+        exhaustive result file named by exhaustive.source (STORYBOARD section 5);
+      random.longest_config, when absent, is the (k, p, seed, index, n_black) tuple parsed
+        from random.longest_config_summary (the renderer regenerates the cells with the exact
+        randexp RNG and asserts the onset by re-simulation);
+      random.max_k, when absent, is the largest k of any random sweep table;
+      adversarial.n_tested <- adversarial.total_runs.
+
+    A section-6 file passes through unchanged.  Fields that stay missing are reported by
+    load_facts by name, as before.
+    """
+    raw = json.loads(json.dumps(raw))          # deep copy; never mutate the caller's dict
+    exh = raw.get("exhaustive")
+    if isinstance(exh, dict):
+        mapped = {}
+        for key, entry in exh.items():
+            if not isinstance(entry, dict):
+                continue
+            k = str(entry.get("k", key[1:] if re.fullmatch(r"k\d+", key) else key))
+            if "cap_hits" not in entry and "n_cap" in entry:
+                entry["cap_hits"] = entry["n_cap"]
+            mapped[k] = entry
+        if "source" in exh:
+            mapped["source"] = exh["source"]
+        raw["exhaustive"] = mapped
+        e4 = mapped.get("4")
+        if isinstance(e4, dict) and ("histogram_log_bins" not in e4 or "k4_records_csv" not in raw):
+            res4 = _get(_load_results_json(raw, "exhaustive", "research/results/exhaustive.json"), "results.k4")
+            e4.setdefault("histogram_log_bins", res4.get("histogram_log_bins"))
+            if "k4_records_csv" not in raw and "per_config_csv" in res4:
+                raw["k4_records_csv"] = res4["per_config_csv"]
+    rnd = raw.get("random")
+    if isinstance(rnd, dict):
+        if "longest_config" not in rnd and "longest_config_summary" in rnd:
+            m = _RANDOM_SUMMARY_RE.search(str(rnd["longest_config_summary"]))
+            if not m:
+                raise FactsError("movie_facts: random.longest_config_summary does not name (k, p, seed, sample_index, n black cells)")
+            rnd["longest_config"] = {"k": int(m["k"]), "p": float(m["p"]), "seed": int(m["seed"]),
+                                     "index": int(m["index"]), "n_black": int(m["n_black"])}
+        if "max_k" not in rnd:
+            ks = list(rnd.get("k_values", [])) + list(rnd.get("main_sweep", {}).get("k_values", []))
+            for name, table in rnd.items():
+                if name.startswith("median_onset") and isinstance(table, dict):
+                    ks += [int(k) for k in table if str(k).isdigit()]
+            if isinstance(rnd.get("longest_config"), dict) and "k" in rnd["longest_config"]:
+                ks.append(int(rnd["longest_config"]["k"]))
+            if ks:
+                rnd["max_k"] = int(max(ks))
+    adv = raw.get("adversarial")
+    if isinstance(adv, dict) and "n_tested" not in adv and "total_runs" in adv:
+        adv["n_tested"] = adv["total_runs"]
+    return raw
+
+
 def load_facts(path: str) -> Facts:
     """Load and validate movie_facts.json; derive the section-6 placeholders.
 
     Aborts (FactsError) naming the first missing field.  Nothing is ever
-    substituted.  The longest configuration is regenerated from its tuple when
-    no cell list is given; its onset is asserted later by RunCache.longest().
+    substituted.  The verified file's layout is mapped by adapt_verified_schema.
+    The longest configuration is regenerated from its tuple when no cell list is
+    given; its onset is asserted later by RunCache.longest().
     """
     if not os.path.exists(path):
         raise FactsError(f"movie_facts: file not found: {path}")
     with open(path) as fh:
-        raw = json.load(fh)
+        raw = adapt_verified_schema(json.load(fh))
 
     onset = int(_get(raw, "onset_step_empty_grid"))
     period = int(_get(raw, "period"))
@@ -252,7 +332,7 @@ def load_facts(path: str) -> Facts:
     if direction.replace("−", "-") != expect_dir:
         raise FactsError(f"movie_facts: direction_empty_grid {direction!r} disagrees with displacement {disp}")
 
-    exhaustive = _get(raw, "exhaustive")
+    exhaustive = {k: e for k, e in _get(raw, "exhaustive").items() if isinstance(e, dict)}
     if "4" not in exhaustive:
         raise FactsError("movie_facts: missing required field 'exhaustive.4'")
     for k, e in exhaustive.items():
@@ -264,29 +344,32 @@ def load_facts(path: str) -> Facts:
         _get(raw, f"random.{f}")
     adv = raw.get("adversarial")
     if adv is not None:
-        for f in ("longest_onset", "cap_hits", "longest_config", "n_tested"):
+        for f in ("longest_onset", "cap_hits", "n_tested"):
             _get(raw, f"adversarial.{f}")
 
-    # LONGEST_* : max over the candidates; ties -> adversarial > exhaustive > random
-    cands = []  # (onset, priority, origin, config, source caption)
+    # LONGEST_* : max over the candidates; exact ties -> _ORIGIN_PRIORITY.  A candidate may
+    # lack its cell list; that is fatal only if it wins.
+    cands = []  # (onset, priority, origin, config or None, config path, source caption)
     if adv is not None:
-        cfg = adv["longest_config"]
-        box = cfg.get("box_k")
-        cap = f"evolved · {box}x{box} box · {len(_config_cells(cfg, 'adversarial.longest_config'))} cells" if box else \
-              f"evolved · {len(_config_cells(cfg, 'adversarial.longest_config'))} cells"
-        cands.append((int(adv["longest_onset"]), 3, "adversarial", cfg, "adversarial.longest_config", cap))
+        cfg = adv.get("longest_config")
+        box = cfg.get("box_k") if cfg else None
+        n_cells = len(_config_cells(cfg, "adversarial.longest_config")) if cfg else "?"
+        cap = f"evolved · {box}x{box} box · {n_cells} cells" if box else f"evolved · {n_cells} cells"
+        cands.append((int(adv["longest_onset"]), "adversarial", cfg, "adversarial.longest_config", cap))
     for k, e in exhaustive.items():
-        if "max_onset_config" in e:
-            cfg = e["max_onset_config"]
-            cap = f"{k}x{k} box · pattern {fmt_int(cfg.get('cfg_index', 0))}"
-            cands.append((int(e["max_onset"]), 2, "exhaustive", cfg, f"exhaustive.{k}.max_onset_config", cap))
+        cfg = e.get("max_onset_config")
+        cap = f"{k}x{k} box · pattern {fmt_int(cfg.get('cfg_index', 0))}" if cfg else f"{k}x{k} box"
+        cands.append((int(e["max_onset"]), "exhaustive", cfg, f"exhaustive.{k}.max_onset_config", cap))
     rcfg = rnd["longest_config"]
     rcap = f"index {rcfg.get('index', '?')} · {rcfg.get('k', '?')}x{rcfg.get('k', '?')} · p={rcfg.get('p', '?')}"
-    cands.append((int(rnd["longest_onset"]), 1, "random", rcfg, "random.longest_config", rcap))
-    best = max(cands, key=lambda c: (c[0], c[1]))
-    longest_onset, _, origin, cfg, cfg_path, source = best
+    cands.append((int(rnd["longest_onset"]), "random", rcfg, "random.longest_config", rcap))
+    longest_onset, origin, cfg, cfg_path, source = max(cands, key=lambda c: (c[0], _ORIGIN_PRIORITY[c[1]]))
+    if cfg is None:
+        raise FactsError(f"movie_facts: missing required field '{cfg_path}' (the {origin} record holds LONGEST_ONSET)")
     longest_cells = _config_cells(cfg, cfg_path)
 
+    # TOTAL_* : section-6 sum (exhaustive boxes are nested and the adversarial count is
+    # evaluations, so this counts RUNS - S13 says so); cross-checked against the verified total.
     total_tested = sum(int(e["n_configs"]) for e in exhaustive.values()) + int(rnd["total_tested"])
     total_highway = sum(int(e["n_highway"]) for e in exhaustive.values()) + int(rnd["total_highway"])
     cap_hits = 0
@@ -294,6 +377,11 @@ def load_facts(path: str) -> Facts:
         total_tested += int(adv["n_tested"])
         total_highway += int(adv.get("n_highway", int(adv["n_tested"]) - int(adv["cap_hits"])))
         cap_hits = int(adv["cap_hits"])
+    if "total_runs_all_experiments" in raw and int(raw["total_runs_all_experiments"]) != total_tested:
+        raise FactsError(f"movie_facts: total_runs_all_experiments={raw['total_runs_all_experiments']} "
+                         f"but the section-6 sum is {total_tested}")
+    if "total_runs_non_certified" in raw and int(raw["total_runs_non_certified"]) != total_tested - total_highway:
+        raise FactsError("movie_facts: total_runs_non_certified disagrees with the section-6 sums")
     e5 = exhaustive.get("5")
     show_k5 = bool(e5 and int(e5["n_highway"]) == int(e5["n_configs"]) == 33_554_432 and int(e5["cap_hits"]) == 0)
 
@@ -315,6 +403,11 @@ def load_facts(path: str) -> Facts:
 # k4 records (dot wall status + mosaic onset assertion)
 # --------------------------------------------------------------------------
 
+# The per-config CSV is derived data (gitignored); this command rebuilds it in a few seconds.
+K4_RECORDS_REGEN = ("cd research/exhaustive && gcc -O3 -march=native -o exhaust exhaust.c && "
+                    "mkdir -p out && ./exhaust 4 0 65536 5000000 out/k4 1")
+
+
 def load_k4_records(path: str) -> dict:
     """Read research/exhaustive/out/k4_records.csv -> {'cfg', 'status', 's'} int arrays.
 
@@ -322,7 +415,8 @@ def load_k4_records(path: str) -> dict:
     """
     path = os.path.join(REPO_DIR, path) if not os.path.isabs(path) else path
     if not os.path.exists(path):
-        raise FactsError(f"k4 records CSV not found: {path}")
+        raise FactsError(f"k4 records CSV not found: {path} (it is not committed; regenerate it with "
+                         f"{K4_RECORDS_REGEN})")
     cache = os.path.join(BUILD_DIR, "runs", "k4_records.npz")
     if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(path):
         z = np.load(cache)
@@ -449,10 +543,15 @@ class AgePlayer(core.GridPlayer):
         return self.run.pos[max(0, self.k - n + 1): self.k + 1]
 
 
+LONGEST_TAIL_STEPS = 20_000   # steps simulated past LONGEST_ONSET: 48 frames x 104 + audio lookahead
+
+
 class RunCache:
     """Lazily simulated runs shared by scenes and the audio engine.
 
     Run ids: "empty" (S01-S08, S14, S15), "longest" (S12), "mosaic0".."mosaic5" (S10).
+    Every onset is asserted: the empty grid and the longest run against the facts, the
+    mosaic tiles against the STORYBOARD 3.3 table and k4_records.csv.
     """
 
     EMPTY_STEPS = 60_000
@@ -465,6 +564,7 @@ class RunCache:
         self._runs: dict[str, core.AntRun] = {}
         self._stats: dict[str, RunStats] = {}
         self._players: dict[str, AgePlayer] = {}
+        self._k4: dict | None = None
         self.longest_size = 4096
 
     def run(self, rid: str) -> core.AntRun:
@@ -484,16 +584,35 @@ class RunCache:
             got = core.find_onset(r.turns)
             if got < 0 or ("onset" in tile and got != int(tile["onset"])):
                 raise FactsError(f"mosaic tile {i} (cfg {tile['cfg']}) onset re-derived as {got}, table says {tile.get('onset')}")
+            self._assert_k4_record(i, int(tile["cfg"]), got)
             tile["onset_derived"] = got
         else:
             raise KeyError(rid)
         self._runs[rid] = r
         return r
 
+    def k4(self) -> dict:
+        """The k4_records.csv arrays {'cfg', 'status', 's'} (dot wall + mosaic assertions)."""
+        if self._k4 is None:
+            if not self.facts.k4_records_csv:
+                raise FactsError("movie_facts: missing required field 'k4_records_csv'")
+            self._k4 = load_k4_records(self.facts.k4_records_csv)
+        return self._k4
+
+    def _assert_k4_record(self, i: int, cfg: int, onset: int):
+        """STORYBOARD 5: a mosaic tile's re-derived onset must equal the CSV's `s` for its
+        config index, and that record must be certified (status 0)."""
+        rec = self.k4()
+        j = int(np.searchsorted(rec["cfg"], cfg))
+        if j >= len(rec["cfg"]) or int(rec["cfg"][j]) != cfg:
+            raise FactsError(f"mosaic tile {i}: cfg {cfg} not found in {self.facts.k4_records_csv}")
+        if onset != int(rec["s"][j]) or int(rec["status"][j]) != 0:
+            raise FactsError(f"mosaic tile {i} (cfg {cfg}): onset re-derived as {onset}, k4_records.csv says "
+                             f"s={int(rec['s'][j])} status={int(rec['status'][j])}")
+
     def _simulate_longest(self) -> core.AntRun:
         f = self.facts
-        rate = f.longest_onset / 4.8                      # steps/s in S12
-        n_steps = int(math.ceil(f.longest_onset + rate * 1.7)) + 4000  # runs to 57.0 s + audio lookahead
+        n_steps = f.longest_onset + LONGEST_TAIL_STEPS    # S12 shows <= 104 steps/frame after the onset
         size = self.longest_size
         while True:
             r = simulate_cached(f.longest_cells, n_steps, size)
@@ -575,10 +694,11 @@ def build_step_schedule(onset: int) -> np.ndarray:
     steps[480] = onset
     # S06 16-20 s: frozen
     steps[480:600] = onset
-    # S07 + S08 20-33 s: exactly 104 steps per frame
+    # S07 + S08 20-33 s: frame 600 resumes from the frozen onset picture, then exactly
+    # 104 steps per frame; the S08 end value of the table ({ONSET}+40,560) is reached at 33.0 s
     for f in range(600, 990):
-        steps[f] = onset + 104 * (f - 600 + 1)
-    end_s08 = int(steps[989])
+        steps[f] = onset + 104 * (f - 600)
+    end_s08 = onset + 104 * 390
     # S09-S13: not shown (hold)
     steps[990:1860] = end_s08
     # S14 62-68 s: 300 steps/s (10 per frame) resuming from the S08 end
@@ -587,8 +707,8 @@ def build_step_schedule(onset: int) -> np.ndarray:
     # S15 68-74 s: identical to S01
     for f in range(2040, 2220):
         steps[f] = onset - 1500 + 100 * (f - 2040)
-    assert steps[15] == onset and steps[480] == onset and steps[600] == onset + 104
-    assert steps[809] == onset + 21840 and steps[989] == onset + 40560
+    assert steps[15] == onset and steps[480] == onset and steps[600] == onset
+    assert steps[809] == onset + 21736 and steps[989] == onset + 40456 and steps[990] == onset + 40560
     assert np.all(np.diff(steps[300:481]) >= 0)
     return steps
 
@@ -749,6 +869,15 @@ def cam_follow(player: AgePlayer, cells_across: float) -> Camera:
     return Camera(x + 0.5, y + 0.5, float(cells_across))
 
 
+def cam_anchor(cell_xy, screen_xy, cells_across: float) -> Camera:
+    """Camera of `cells_across` cells whose cell point `cell_xy` lands on screen point `screen_xy`
+    (the inverse of core.cell_to_px); used to keep a subject inside a text-free region."""
+    cell_px = W / cells_across
+    cx = cell_xy[0] - (screen_xy[0] - W / 2) / cell_px
+    cy = cell_xy[1] + (screen_xy[1] - H / 2) / cell_px
+    return Camera(float(cx), float(cy), float(cells_across))
+
+
 def cam_tween(a: Camera, b: Camera, u: float, ease=smoothstep) -> Camera:
     """Blend two cameras; cell size interpolates geometrically (feels linear on screen)."""
     e = ease(u)
@@ -763,15 +892,6 @@ def cam_pullback(ant_xy, blob_cxy) -> Camera:
     bx, by = blob_cxy
     ca = clamp(1.25 * (abs(ax - bx) + 60), 108, 1080)
     return Camera((ax + bx) / 2, (ay + by) / 2, ca)
-
-
-def cam_autofit(bbox, min_cells: float = 64) -> Camera:
-    """Auto-fit rule (S12): cells_across = clamp(1.3 * max(bw, bh * 0.5625, 64), 64, 1080)
-    centred on the bbox (xmin, ymin, xmax, ymax) of modified cells."""
-    x0, y0, x1, y1 = bbox
-    bw, bh = (x1 - x0 + 1), (y1 - y0 + 1)
-    ca = clamp(1.3 * max(bw, bh * 0.5625, min_cells), 64, 1080)
-    return Camera((x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2, ca)
 
 
 class LagSmoother:
@@ -841,13 +961,15 @@ class Line:
 
 
 def card_anim(t: float, t0: float, t1: float, snap_in: bool = False, snap_out: bool = False) -> tuple[float, float]:
-    """(opacity, dy) of a card living on [t0, t1]: 150 ms fades, 12 px upward drift on the way in.
-    Hero slams use snap_in=True (1-frame snap, no fade)."""
+    """(opacity, dy) of a card living on [t0, t1): 150 ms fades, 12 px upward drift on the way in.
+    Hero slams use snap_in=True (1-frame snap, no fade).  The fade-in is offset by one frame so
+    the card is already visible (22 %) on its listed frame instead of spending it at opacity 0;
+    the fade-out mirrors that (22 % on the last frame), so back-to-back cards always overlap."""
     if t < t0 or t >= t1:
         return 0.0, 0.0
     fin = 0.0 if snap_in else TEXT_FADE
     fout = 0.0 if snap_out else TEXT_FADE
-    a = clamp((t - t0) / fin) if fin > 0 else 1.0
+    a = clamp((t - t0 + 1.0 / FPS) / fin) if fin > 0 else 1.0
     b = clamp((t1 - t) / fout) if fout > 0 else 1.0
     return min(a, b), TEXT_DRIFT * (1.0 - a)
 
@@ -946,6 +1068,28 @@ def draw_pill(img: Image.Image, kind: str, x: float, y: float, opacity: float = 
     return box
 
 
+def draw_pill_card(img: Image.Image, kind: str, lines: list[Line], *, top: float, opacity: float = 1.0,
+                   dy: float = 0.0, x: float = 100) -> tuple[tuple, tuple] | None:
+    """Band spanning the safe width (x 80..960, centred on 520) with a pill at `x` above
+    left-aligned lines (2.6: the pill sits 'left of or above' the line; side by side the pill
+    plus a 700 px line would exceed 880 px).  Returns (band box, text card box)."""
+    if opacity <= 0:
+        return None
+    pill_h = sum(core.font("bold", 56).getmetrics()) + 16
+    text_h = 0.0
+    for ln in lines:
+        fnt, _ = fit_font(ln.role, ln.size, ln.text)
+        text_h += sum(fnt.getmetrics()) * LINE_SPACING + ln.gap_before
+    gap = 12
+    bh = BAND_PAD + pill_h + gap + text_h + BAND_PAD
+    y0 = top + dy
+    band = (SAFE_X0, y0, SAFE_X1, y0 + bh)
+    core.draw_rect(img, list(band), PLAIN, BAND_ALPHA * opacity, radius=BAND_RADIUS)
+    draw_pill(img, kind, x, y0 + BAND_PAD, opacity)
+    text = draw_card(img, lines, top=y0 + pill_h + gap, x_left=x, align="left", opacity=opacity, band=False)
+    return band, text
+
+
 def draw_counter(
     img: Image.Image,
     step: int,
@@ -988,11 +1132,13 @@ def draw_turn_strip(
     *,
     x0: int = 100, x1: int = 932, y0: int = 1440, y1: int = 1500,
     n_ticks: int = 208, bracket: int = 104, label: str = "104 turns",
-    opacity: float = 1.0,
+    opacity: float = 1.0, first_step: int = 0,
 ):
     """Barcode of the last `n_ticks` turns up to `end_step`: R = tick up (amber),
     L = tick down (cream), 4 px per tick; an amber bracket under the last `bracket`
-    ticks with a label and a loop arrow (STORYBOARD S07).  Occupies y0-8 .. y1+48."""
+    ticks with a label and a loop arrow (STORYBOARD S07).  Occupies y0-8 .. y1+48.
+    Turns before `first_step` (the onset) are never drawn: the barcode shows only the
+    periodic regime, so its ticks are pixel-identical from the first full window on."""
     if opacity <= 0:
         return
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
@@ -1000,7 +1146,7 @@ def draw_turn_strip(
     a = int(255 * clamp(opacity))
     tick_w = (x1 - x0) / n_ticks
     mid = (y0 + y1) / 2
-    s0 = max(0, end_step - n_ticks)
+    s0 = max(0, first_step, end_step - n_ticks)
     seg = turns[s0:end_step]
     d.rounded_rectangle([x0 - 12, y0 - 8, x1 + 12, y1 + 8], radius=12, fill=(*PLAIN, int(BAND_ALPHA * a)))
     for i, tv in enumerate(seg):
@@ -1064,12 +1210,20 @@ def draw_bar_chart(
     if title:
         tf, _ = fit_font("mono", label_size, title, max_w=px1 - px0)
         d.text((px0, y0 + pad - 4), title, font=tf, fill=(*SECONDARY, a))
-    for v in (100, 1000, 10000, 100000):
-        if bins[0]["lo"] <= v <= bins[-1]["hi"]:
+    last_label_right = -1e9
+    for v in (100, 1000, 10000, 100000, 1000000):
+        if lo_all <= math.log10(v) <= hi_all:
             xv = xpos(v)
             d.line([(xv, py1), (xv, py1 + 6)], fill=(*SECONDARY, a), width=2)
             lab = fmt_int(v)
-            d.text((xv - fnt.getlength(lab) / 2, py1 + 8), lab, font=fnt, fill=(*SECONDARY, a))
+            lw = fnt.getlength(lab)
+            # the label is centred on its tick but never leaves the chart box (STORYBOARD 2.3);
+            # a label that would then collide with its neighbour is dropped (the tick stays)
+            lx = clamp(xv - lw / 2, x0 + 8, x1 - 8 - lw)
+            if lx < last_label_right + 12:
+                continue
+            d.text((lx, py1 + 8), lab, font=fnt, fill=(*SECONDARY, a))
+            last_label_right = lx + lw
     lh = sum(fnt.getmetrics())
     for i, (value, label, color) in enumerate(markers):
         xv = xpos(value)

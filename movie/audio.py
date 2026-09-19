@@ -26,6 +26,7 @@ import math
 import os
 import re
 import subprocess
+import tempfile
 
 import numpy as np
 
@@ -166,7 +167,8 @@ class TurnStream:
 
     def _render(self, H: float, rate: float, n: int) -> tuple[np.ndarray, float]:
         idx = np.floor(H + (rate / OSR) * np.arange(n)).astype(np.int64)
-        np.clip(idx, 0, len(self.w) - 1, out=idx)
+        if idx[-1] >= len(self.w) or idx[0] < 0:     # a too-short run would drone on a held value
+            raise RuntimeError(f"turn-stream head at {idx[-1]} past the end of a {len(self.w)}-turn run")
         return self.w[idx].astype(np.float64), H + (rate / OSR) * n
 
     def _head_chunk(self, hi: int, rate: float, step: int) -> np.ndarray:
@@ -435,7 +437,8 @@ def render_events(events: list[dict], frame_index: dict[int, int], n_frames: int
         elif typ == "micro_tick":
             sec = f // common.FPS
             budget = 200 - ticks_this_second.get(sec, 0)
-            k = int(min(int(ev.get("n", 1)), max(0, budget), 7))
+            per_frame = 7 if f % 3 == 2 else 6                      # 6, 6, 7 -> 190/s, never above 200/s
+            k = int(min(int(ev.get("n", 1)), max(0, budget), per_frame))
             ticks_this_second[sec] = ticks_this_second.get(sec, 0) + k
             for i in range(k):
                 core.place(out, s + int(i * SPF / max(1, k)), g_micro_tick())
@@ -550,7 +553,9 @@ def normalise(stereo: np.ndarray, target_lufs: float, ceiling_dbtp: float = -3.5
     a final ffmpeg true-peak measurement with a global trim if the limiter's estimate was short."""
     info = {}
     y = soft_limit(stereo)
-    tmp = os.path.join(work_dir, "_loudness_probe.wav")
+    os.makedirs(work_dir, exist_ok=True)                      # a fresh clone has no build/ yet
+    fd, tmp = tempfile.mkstemp(prefix="_loudness_probe_", suffix=".wav", dir=work_dir)
+    os.close(fd)                                              # per-process name: concurrent runs never clobber each other
 
     def loudness(sig):
         core.write_wav(tmp, sig)
@@ -584,6 +589,8 @@ def normalise(stereo: np.ndarray, target_lufs: float, ceiling_dbtp: float = -3.5
             y = y * db(target_lufs - lufs)
             continue
         break
+    lufs = loudness(y)                        # measure the signal actually written, after any trim
+    tp = measure_true_peak(tmp)
     info["lufs"], info["true_peak_dbtp"] = lufs, tp
     if os.path.exists(tmp):
         os.remove(tmp)
