@@ -271,7 +271,7 @@ WALLS_DURATION_S = 5.0
 WALLS_T_BLOCK, WALLS_T_IMPACT = 0.1, 1.0   # the block shows from +0.1 s (reviewer V5: 0.9 s on screen before the impact)
 WALLS_PRE_RATE = 800.0 / FPS      # steps per frame before the impact
 WALLS_RATE_CAP = 3000.0           # steps per frame ceiling after the impact
-WALLS_DOUBLING = 20.0             # frames per doubling of the post-impact rate (reaches ~1,670/frame at the cut)
+WALLS_DOUBLING = 20.0             # frames per doubling of the post-impact rate (reaches 1,648 steps/frame on the last frame before the cut)
 
 
 def walls_schedule() -> np.ndarray:

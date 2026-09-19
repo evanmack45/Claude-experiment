@@ -30,13 +30,13 @@ python3 audio.py --timeline build/timeline_full.json --wav build/langtons_ant.wa
 
 # 3. checks (the imageio-ffmpeg bundle ships ffmpeg only, no ffprobe, and neither is on PATH)
 FF=$(python3 -c 'import core; print(core.ffmpeg_exe())')
-$FF -hide_banner -i langtons_ant.mp4                                         # streams, codecs, duration
+$FF -hide_banner -i langtons_ant.mp4 2>&1 | grep -E 'Duration|Stream'        # streams, codecs, duration (bare `ffmpeg -i` exits non-zero: no output file)
 $FF -hide_banner -nostats -i langtons_ant.mp4 -map 0:v -f null - 2>&1 | tail -2   # frame count
 $FF -hide_banner -nostats -i langtons_ant.mp4 -af ebur128=peak=true -f null -     # integrated LUFS + true peak
 ```
 
-(`audio.py --mux` prints the same probe.  If a system `ffprobe` exists, `ffprobe -v error -show_entries
-stream=codec_name,width,height,r_frame_rate,nb_frames,pix_fmt,sample_rate,channels langtons_ant.mp4` works too.)
+(`audio.py --mux` prints the same probe.  If an `ffprobe` exists - `core.ffprobe_exe()` looks next to the bundled ffmpeg and on PATH -
+`$(python3 -c 'import core; print(core.ffprobe_exe())') -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames,pix_fmt,sample_rate,channels langtons_ant.mp4` works too.)
 
 Development options of `render.py`:
 
@@ -47,7 +47,7 @@ Development options of `render.py`:
 | `--preview` | 540x960 output with a fast x264 preset (the picture is rendered at full size, then downscaled) |
 | `--dump-frames DIR` | also write every rendered frame as a PNG |
 | `--safe-zone` | overlay the text safe zone (x 80..960, y 240..1600) |
-| `--crf N` | x264 quality (default 21; the full film is 8.6 MB, -14.1 LUFS / -2.5 dBTP after `audio.py`) |
+| `--crf N` | x264 quality (default 21; the full film is 8.6 MB, -14.1 LUFS / -3.2 dBTP after `audio.py`) |
 
 Example: `python3 render.py --facts $FACTS --out build/S07.mp4 --shots S07 --preview --dump-frames build/frames_S07 --safe-zone`.
 
@@ -107,7 +107,7 @@ packer (the exhaustive sweep is deterministic, so the arrays do not change).
 
 Onset frames: S01 15 (0.5 s), S06 480, S07 600, S12 1662 (55.4 s), WALLS impact 1740 (58.0 s) and
 rebuilt-road onset 1789 (59.63 s), S15 2205 (73.5 s).  S01/S15 hook framing: 130 cells across, blob centre at
-screen (590, 1090); S15 bands: question 300-646, sub-lines 650-903, credit 1437-1600 (bottom-aligned to the safe zone).
+screen (590, 1090); S15 bands: question 280-626, sub-lines 650-903 (24 px gap), credit 1437-1600 (bottom-aligned to the safe zone).
 
 Scene functions have the signature `S07(ctx, t_local, frame) -> (PIL.Image 1080x1920, audio_state, events)`
 and are pure per frame; `audio.py` never looks at pixels, only at the timeline that `render.py` writes.

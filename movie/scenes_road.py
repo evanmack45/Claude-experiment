@@ -44,7 +44,8 @@ S15_LOCK = S15_DECEL[0][0]           # local s: the camera stops following at +4
 S15_TIP_CELLS = 90                   # cells across once settled (12 px/cell: single steps are visible)
 S15_TIP_SCREEN = (W / 2, 1170)       # the ant's screen position once settled: the text-free band between the sub-lines (end ~903) and the credit (1437)
 S15_DRIFT_CTRL = (100, 1290)         # Bezier control: the ant comes back along the lower-left, above the credit band
-S15_SUB_TOP = 650                    # sub-lines band top: directly under the question band (300 .. ~646), STORYBOARD "640-830"
+S15_QUESTION_TOP = 280               # question band top (ends ~626): >= 20 px above the sub-lines band, and >= 240 (safe zone)
+S15_SUB_TOP = 650                    # sub-lines band top: 24 px under the question band (280 .. ~626), STORYBOARD "640-830"; its bottom (~903) clears the hook blob
 S15_CREDIT_LINES = (Line("made by Claude (an AI)", "mono", 40, SECONDARY),
                     Line("github: evanmack45/Claude-experiment", "mono", 38, SECONDARY))
 S15_CREDIT_BOTTOM = common.SAFE_Y1   # the credit band is bottom-aligned to the safe zone (1437 .. 1600, measured), reviewer V1 / SCI-02
@@ -580,7 +581,7 @@ def S15(ctx, t_local, frame):
     t0, t_end = ctx.shot.t0, ctx.shot.t1
     op, dy = card_anim(ctx.t, t0 + 0.2, t_end, snap_out=True)
     common.draw_card(img, [Line("Can YOU find a start", "bold", 72), Line("that never", "bold", 72),
-                           Line("builds a road?", "bold", 72)], top=300, opacity=op, dy=dy)
+                           Line("builds a road?", "bold", 72)], top=S15_QUESTION_TOP, opacity=op, dy=dy)
     op, dy = card_anim(ctx.t, t0 + 0.6, t_end, snap_out=True)
     common.draw_card(img, [Line("Any finite start counts.", "regular", 48), Line("Proof or counterexample?", "regular", 48),
                            Line("Argue in the comments.", "regular", 48)], top=S15_SUB_TOP, opacity=op, dy=dy)

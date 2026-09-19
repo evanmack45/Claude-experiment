@@ -537,7 +537,7 @@ def S12(ctx, t_local, frame):
     op, _ = card_anim(t, 50.0, HOLD)
     k = f.stubborn_k
     common.draw_bar_chart(img, f.stubborn_hist, box=S12_CHART_BOX,
-                          markers=[(onset, "longest", AMBER), (f.onset, "empty grid", SECONDARY)],
+                          markers=[(onset, "this start", AMBER), (f.onset, "empty grid", SECONDARY)],   # "longest" is reserved for the card's `longest anywhere` line
                           title=f"onset step, all {fmt_int(f.stubborn_n_configs)} {k}x{k} starts", opacity=op)
     card_a, card_b = _s12_cards(f)
     op, dy = card_anim(t, 50.0, 53.5)
@@ -577,6 +577,7 @@ WALLS_REVEAL = (1.6, 2.6)                  # local s: the pull-back widens from 
 WALLS_HANDOFF_S = 0.6                      # follow-cam -> pull-back hand-off at the impact
 WALLS_LOOKAHEAD_F = 9                      # frames: the 0.3 s camera lag is fed the bbox this far ahead, so the exponentially accelerating road tip stays inside the fit
 WALLS_CARD_TOP = 300
+WALLS_ANT_MARGIN, WALLS_ANT_KNEE = 60, 60  # px: after the impact the ant (the road tip) is eased to a halt >= this far inside the frame (softplus knee width)
 
 
 def _walls_steps(ctx) -> np.ndarray:
@@ -649,12 +650,41 @@ def _walls_camera(ctx, frame: int, t_local: float) -> Camera:
         fit = _walls_fit(ctx.lag.value("walls_bbox", frame, f_imp,
                                        lambda g: _walls_fit_bbox(ctx, int(clamp(g + WALLS_LOOKAHEAD_F, f_imp + 1, f_last)))))
         cam = common.cam_tween(follow, fit, (t_local - common.WALLS_T_IMPACT) / WALLS_HANDOFF_S)
+        cam = _walls_keep_ant_inside(ctx, cam, frame)
     f_block = ctx.shot.f0 + frame_of(common.WALLS_T_BLOCK)
     if f_block <= frame < f_block + len(WALLS_SHAKE):             # 2-frame screen shake as the wall appears
         dx, dy = WALLS_SHAKE[frame - f_block]
         cell_px = W / cam.cells_across
         cam = Camera(cam.cx - dx / cell_px, cam.cy + dy / cell_px, cam.cells_across)
     return cam
+
+
+def _soft_inside(v: float, lo: float, hi: float, z: float) -> float:
+    """Map v smoothly into (lo, hi): identity well inside, a softplus knee of width z at each edge
+    (v -> lo from below, v -> hi from above), C1 everywhere, so a clamped subject decelerates
+    instead of stopping dead."""
+    v = lo + z * math.log1p(math.exp((v - lo) / z))
+    return hi - z * math.log1p(math.exp((hi - v) / z))
+
+
+def _walls_keep_ant_inside(ctx, cam: Camera, frame: int) -> Camera:
+    """Slide the post-impact camera (same zoom) so the ant stays inside the frame: the fit centres the
+    bbox, whose leading edge IS the road tip, so once the 1,080-cell cap binds (local frame ~142; the
+    bbox is ~1,000 cells wide at the cut) and the lag trails the accelerating tip, the ant ran off the
+    left edge during the last four frames before the cut.  The ant's screen point is mapped through
+    _soft_inside with a WALLS_ANT_MARGIN floor and a WALLS_ANT_KNEE knee (x against the frame edges,
+    y against the stage band) and the camera is shifted by the difference, so the ant eases to a halt
+    >= 60 px inside the edge (80 px on the last frame) while the blob's far edge stays on screen."""
+    ax, ay = (float(v) + 0.5 for v in ctx.runs.run("walls").pos[_walls_step(ctx, frame)])
+    px, py = core.cell_to_px(cam, W, H, ax, ay)
+    m, z = WALLS_ANT_MARGIN, WALLS_ANT_KNEE
+    sy0, sy1 = WALLS_STAGE_Y
+    sx = px - _soft_inside(px, m, W - m, z)               # px the ant is pushed back toward the frame (negative = it was too far left)
+    sy = py - _soft_inside(py, sy0 + m, sy1 - m, z)
+    if abs(sx) < 1e-6 and abs(sy) < 1e-6:
+        return cam
+    cell_px = W / cam.cells_across
+    return Camera(cam.cx + sx / cell_px, cam.cy + sy / cell_px, cam.cells_across)
 
 
 def _draw_block(img, cam: Camera, visible: bool, hit: bool):
@@ -784,8 +814,15 @@ S14_ANT_DX, S14_ANT_DY = 180, 540          # the ant's screen offset from the ce
 S14_ROWS = (
     ("PROVEN", "It never gets trapped.", "Bunimovich & Troubetzkoy 1992"),
     ("PROVEN", "It can run any logic circuit.", "Gajardo, Moreira & Goles 2002"),
-    ("UNPROVEN", "It always builds the road.", "every finite start, tested: yes"),
+    ("UNPROVEN", "It always builds the road.", "held in {total_tested} runs. No proof."),
 )
+
+
+def _s14_rows(f) -> tuple:
+    """The three rows; the UNPROVEN fine print carries the run count (`total_runs_all_experiments`,
+    819 px at Mono 40) - the earlier `every finite start, tested: yes` read as a claim that every
+    finite start had been tested."""
+    return tuple((kind, sentence, cite.format(total_tested=f.total_tested_fmt)) for kind, sentence, cite in S14_ROWS)
 
 
 def _draw_score_row(img, row, y, t, t_in):
@@ -820,9 +857,10 @@ def S14(ctx, t_local, frame):
     player.seek(ctx.step_at(frame))
     grid = common.render_run(player, _s14_camera(ctx, player), steps_drawn=ctx.steps_drawn(frame))
     img = common.blend_frames(common.new_frame(PLAIN), grid, 0.25)
-    for row, y, t_in in zip(S14_ROWS, S14_LINE_Y, S14_LINE_T):
+    rows = _s14_rows(ctx.facts)
+    for row, y, t_in in zip(rows, S14_LINE_Y, S14_LINE_T):
         _draw_score_row(img, row, y, t, t_in)
-    events = [{"type": "bell"} for row, t_in in zip(S14_ROWS, S14_LINE_T) if row[0] == "PROVEN" and ctx.at(frame, t_in)]
+    events = [{"type": "bell"} for row, t_in in zip(rows, S14_LINE_T) if row[0] == "PROVEN" and ctx.at(frame, t_in)]
     open_line = t >= S14_LINE_T[2]
     osc = [] if open_line else [{"run": "empty", "step": ctx.step_at(frame), "gain_db": -22.0}]
     pad = None if open_line else {"chord": "highway", "cutoff": 1200.0, "gain_db": PAD_THIN_DB}
