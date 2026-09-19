@@ -1,0 +1,104 @@
+{
+ "experiment": "literature",
+ "conventions": "CONVENTIONS.md",
+ "parameters": {
+  "date": "2026-09-19",
+  "method": "web verification of primary/secondary sources (see research/literature/SOURCES.md) + one computation: comparison of the CONVENTIONS.md ant with OEIS A261990 (python3 research/literature/check_oeis.py)",
+  "oeis_bfile": "research/literature/data/b261990.txt"
+ },
+ "results": {
+  "oeis_reconciliation": {
+   "bfile": "data/b261990.txt (OEIS A261990, offset 0, n=0..10288)",
+   "steps_simulated": 10289,
+   "mismatches_b(n)_vs_colour_read_at_step_n_plus_1": 0,
+   "mismatches_b(n)_vs_colour_read_at_step_n": 4842,
+   "oeis_index_from_which_b_is_104_periodic": 9977,
+   "conventions_onset_step_s": 9977,
+   "first_periodic_step_1_based": 9978,
+   "turn_at_step_s_and_s_plus_104": [
+    "L",
+    "R"
+   ],
+   "turn_at_step_s_plus_1_and_s_plus_105": [
+    "L",
+    "L"
+   ],
+   "interpretation": "OEIS A261990 has offset 0, so b(n) is the colour read at step n+1 in CONVENTIONS numbering. The OEIS comment 'begins repeating at the 9977th step' means b(n)==b(n+104) for n>=9977, i.e. the turn sequence is periodic from step 9978 onward, i.e. onset step s=9977 in CONVENTIONS.md (9977 steps completed before the periodic regime)."
+  },
+  "proven": [
+   {
+    "claim": "For every initial configuration the ant's trajectory is unbounded (Bunimovich-Troubetzkoy theorem, popularly 'Cohen-Kong theorem').",
+    "source": "L. A. Bunimovich, S. E. Troubetzkoy, J. Stat. Phys. 67 (1992) 289-302, doi:10.1007/BF01049035; attribution confirmed by Gale-Propp-Sutherland-Troubetzkoy 1995 and Gajardo-Moreira-Goles 2002",
+    "level": "VERIFIED (statement via refereed citations; primary paywalled)"
+   },
+   {
+    "claim": "The set of cells exited infinitely often has no corner cell.",
+    "source": "S. Troubetzkoy, Lewis-Parker lecture 'The ant', Alabama J. Math. 21(2) (1997) 3-15, as cited by Gajardo et al. 2002 and Etse 2026",
+    "level": "SECONDARY"
+   },
+   {
+    "claim": "Any boolean circuit can be evaluated by the trajectory of a single ant on a finite configuration; the cell-reachability problem is P-hard; with an infinite periodic configuration the ant is computationally universal and has undecidable problems.",
+    "source": "A. Gajardo, A. Moreira, E. Goles, Discrete Applied Mathematics 117 (2002) 41-50, doi:10.1016/S0166-218X(00)00334-6, arXiv:nlin/0306022",
+    "level": "VERIFIED"
+   },
+   {
+    "claim": "Generalized ants whose rule string has the even run-length property (e.g. LRRL, LLRR) exhibit recurrent bilateral symmetry.",
+    "source": "Gale, Propp, Sutherland, Troubetzkoy, Math. Intelligencer 17(3) (1995) 48-56, arXiv:math/9501233",
+    "level": "VERIFIED"
+   },
+   {
+    "claim": "On the triangular lattice the flipping-rotator ant propagates regardless of the initial configuration (average velocity 1/8).",
+    "source": "Grosfils, Boon, Cohen, Bunimovich, J. Stat. Phys. 97 (1999) 575-608, arXiv:cond-mat/9905168",
+    "level": "SECONDARY (abstract)"
+   },
+   {
+    "claim": "Escape-time bounds on finite domains: n x n within (n+1)! steps; exact S(n,n) for n=1..9: 1,6,17,46,85,164,262,488,679.",
+    "source": "K. R. Etse, arXiv:2606.26677 (2026)",
+    "level": "VERIFIED (arXiv HTML)"
+   }
+  ],
+  "open": [
+   {
+    "claim": "Highway conjecture: for every initial configuration with finite support the ant eventually builds the period-104 highway. OPEN as of all sources through June 2026.",
+    "sources": [
+     "Gajardo et al. 2002 ('it is conjectured')",
+     "Gajardo-Lutfalla-Rao, Natural Computing 24 (2025) 497-509",
+     "Lutfalla arXiv:2505.05426 (2025): 'little progress has been made towards proving or disproving this conjecture'",
+     "Etse arXiv:2606.26677 (2026): 'has never been formally established'",
+     "Wikipedia: 'no one has been able to prove that this is true for all such initial configurations'"
+    ],
+    "level": "VERIFIED"
+   },
+   {
+    "claim": "Decidability of problems whose input is a finite-support configuration (e.g. 'does the ant ever visit this cell?') is open; it would follow from the highway conjecture.",
+    "source": "Gajardo et al. 2002, conclusions",
+    "level": "VERIFIED"
+   }
+  ],
+  "highway_facts": {
+   "period": 104,
+   "displacement_per_period": "(\u00b12,\u00b12) diagonal; speed sqrt(2)/52 (Boon 2001) = |(2,2)|/104",
+   "onset_from_empty_grid_conventions_s": 9977,
+   "first_periodic_step_1_based": 9978,
+   "literature_figures": {
+    "about 10,000": "Gale et al. 1995; Gajardo et al. 2002; Wikipedia; Etse 2026 (rounded description)",
+    "9977": "OEIS A261990 (2015), Tokarz arXiv:1807.08789 (2018): exact onset, 0-indexed = CONVENTIONS s",
+    "10647": "MathWorld figure-caption step count, NOT an onset"
+   }
+  },
+  "attribution": {
+   "introduced_by": "Christopher G. Langton, 'Studying artificial life with cellular automata', Physica D 22 (1986) 120-149, doi:10.1016/0167-2789(86)90237-X; he called them 'vants'; paper contains no '10,000', no '104' and no 'highway'.",
+   "cohen_kong_name": "from Ian Stewart, 'The Ultimate in Anty-Particles', Scientific American 271(1) (July 1994) 104-107; Wikipedia links Cohen to E. G. D. Cohen; Kong = X. P. Kong (inferred, not stated verbatim in any source read); MathWorld/Tokarz spell it 'Cohen-Kung'."
+  },
+  "records": {
+   "longest_transient_langton_ant_finite_config_published": "none found in the literature; only the empty-grid 9977 is documented",
+   "repo_local_longest_onset": "196974 steps (research/results/random_longest.json; not a literature figure)",
+   "other_rules": "LLRRRL/LLRLRLL/LLLR etc. have published transients of 1e8 steps and more (Gajardo-Lutfalla-Rao 2025, Lutfalla 2025), not Langton's ant"
+  }
+ },
+ "notes": [
+  "See research/literature/SOURCES.md for verbatim quotes, URLs and the VERIFIED/SECONDARY/UNVERIFIED label on each claim, and section 8 for misconceptions to avoid.",
+  "Only computed number: the OEIS reconciliation (check_oeis.py). Everything else is bibliographic.",
+  "Bunimovich-Troubetzkoy 1992, Gale 1993, Gale-Propp 1994, Stewart 1994 and Troubetzkoy 1997 are paywalled/unreachable from this sandbox; their contents are attested by the refereed papers that cite them."
+ ]
+}

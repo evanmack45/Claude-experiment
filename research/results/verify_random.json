@@ -1,0 +1,197 @@
+{
+ "experiment": "verify_random",
+ "conventions": "CONVENTIONS.md",
+ "description": "Skeptical independent verification of research/random (random initial configurations). Own C simulator (mysim.c, flat arrays, 8192 grid, post-hoc onset from the full turn sequence, true max |coord|), own pure-Python ant + RNG (mypy_ant.py), full re-runs of all four sweeps, byte-level comparison, certification soundness by extended runs.",
+ "parameters": {
+  "finder_dir": "research/random",
+  "my_dir": "research/verify/random",
+  "seeds_rerun": [
+   20260919,
+   20260920,
+   20260921,
+   20260922
+  ],
+  "cap": 20000000
+ },
+ "results": {
+  "main_sweep_rerun": {
+   "configs": 400000,
+   "rows_compared": 400000,
+   "rows_disagreeing": 0,
+   "fields_compared": [
+    "outcome",
+    "onset_step",
+    "direction",
+    "steps_simulated",
+    "n_black",
+    "dispx",
+    "dispy",
+    "fx",
+    "fy",
+    "bx0",
+    "by0",
+    "bx1",
+    "by1",
+    "periods_verified"
+   ],
+   "my_outcomes": {
+    "certified": 400000,
+    "cap": 0,
+    "boundary": 0,
+    "nontravel": 0
+   },
+   "posthoc_full_array_mismatches_after_s": 0,
+   "true_max_abs_coordinate_any_step": 227,
+   "max_abs_final_coordinate": 224,
+   "argmax_true_max_abs": {
+    "k": 64,
+    "p": 0.75,
+    "sample_index": 44
+   }
+  },
+  "extended_sweeps_rerun": {
+   "u32_files_compared": 73,
+   "u32_files_identical": 73,
+   "configs": 4330000,
+   "certified": 4330000,
+   "max_abs_coordinate_any_step": 839,
+   "max_steps_single_run": 1337591,
+   "n_disp_not_pm2_pm2": 0
+  },
+  "aggregates_from_finder_raw_data_my_code": {
+   "C4": {
+    "min": 101,
+    "median": 5767.0,
+    "mean": 9788.3731,
+    "max": 196974,
+    "frac_below_9977": 0.6740575
+   },
+   "C5_median_p05": [
+    2084.5,
+    2676.0,
+    3458.5,
+    4267.5,
+    5980.5,
+    7801.5,
+    11037.0,
+    15472.0
+   ],
+   "C6": {
+    "all_k": [
+     0.7882,
+     0.9875
+    ],
+    "k_ge_24": [
+     0.9525,
+     0.9957
+    ]
+   },
+   "C7": {
+    "exponent_k_ge_64": 1.1378,
+    "r2": 0.9986,
+    "exponent_N": 0.5689,
+    "medians": [
+     2052.5,
+     2687.0,
+     3507.5,
+     4246.5,
+     5811.5,
+     7581.0,
+     11331.0,
+     14966.5,
+     22185.0,
+     31523.0,
+     48029.5,
+     68823.5,
+     108796.5,
+     159241.0
+    ]
+   },
+   "C10": {
+    "n_disp_not_pm2_pm2": 0,
+    "dir_counts": {
+     "+x,+y": 100245,
+     "+x,-y": 98961,
+     "-x,+y": 100527,
+     "-x,-y": 100267
+    }
+   },
+   "C12_medians": [
+    6942.0,
+    6922.5,
+    6751.0,
+    6715.5,
+    6722.0,
+    6919.5,
+    7239.5,
+    7395.0,
+    7526.5,
+    7729.0,
+    7909.0,
+    8129.5,
+    8314.0,
+    8616.5,
+    8680.5,
+    8998.0,
+    9197.5,
+    9386.5,
+    10147.0
+   ],
+   "grand_total": 4730000
+  },
+  "pure_python_resims": {
+   "empty_grid": [
+    9977,
+    12336,
+    "-x,-y"
+   ],
+   "main_longest_k64_p0.75_idx4491": [
+    196974,
+    199230,
+    "-x,-y"
+   ],
+   "ext_longest_k64_p0.9_idx96681": [
+    232914,
+    238913,
+    "-x,+y"
+   ],
+   "scale_longest_k512_idx9269": [
+    1323594,
+    1337591,
+    "+x,-y"
+   ]
+  },
+  "rng_checks": {
+   "configs_python_vs_randexp_dump_vs_mysim": 7,
+   "mismatches": 0,
+   "distinct_rng_states_over_4730000_tuples": 4730000,
+   "random_longest_cells_match_regen": true,
+   "box_ranges_ok": true
+  },
+  "certification_soundness": {
+   "subset_200_seed_12345": {
+    "failures": 0,
+    "total_periods_checked": 377698
+   },
+   "subset_1000_seed_777": {
+    "n": 1000,
+    "rng_seed": 777,
+    "failures": 0,
+    "total_periods_checked": 1885705
+   },
+   "longest_main_extended_to_boundary": {
+    "steps": 407291,
+    "periods": 2021,
+    "mismatches_after_s": 0
+   }
+  },
+  "finder_verify_py_rerun": {
+   "n_checked": 784,
+   "n_mismatch": 0
+  }
+ },
+ "notes": [
+  "C11's 'max |coordinate| reached 224' is the max |FINAL coordinate|; the true max over all steps is 227 (same run, k=64 p=0.75 idx 44); substantive claim (far inside grid) unaffected.",
+  "Re-running the finder's verify_py.py rewrote research/random/out/verify_py.json with identical content (only the mtime changed)."
+ ]
+}

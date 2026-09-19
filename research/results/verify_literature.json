@@ -1,0 +1,65 @@
+{
+ "experiment": "verify_literature",
+ "conventions": "CONVENTIONS.md",
+ "parameters": {
+  "date": "2026-09-19",
+  "simulator": "research/verify/literature/ant_oeis_check.py (pure Python, own code)",
+  "steps_simulated": 300000,
+  "bfile": "research/verify/literature/data/b261990_verifier.txt (md5 800a0742a953a14f34c3ce8bcd7110fa)",
+  "reproduce": "sh research/verify/literature/reproduce.sh"
+ },
+ "results": {
+  "onset_step_s": 9977,
+  "first_periodic_step": 9978,
+  "period": 104,
+  "displacement_per_period": [
+   -2,
+   -2
+  ],
+  "highway_direction": "-x,-y",
+  "periods_verified": 2788,
+  "turns": {
+   "t[9977]": "L",
+   "t[10081]": "R",
+   "t[9978]": "L",
+   "t[10082]": "L"
+  },
+  "bbox_modified_before_step_9978": {
+   "xmin": -19,
+   "xmax": 29,
+   "ymin": -22,
+   "ymax": 22
+  },
+  "ant_after_9977_steps": [
+   -15,
+   10
+  ],
+  "ant_after_300000_steps": [
+   -5592,
+   -5574
+  ],
+  "oeis_mismatches_offset_n_plus_1": 0,
+  "oeis_mismatches_offset_n": 4842,
+  "oeis_bfile_periodic_from_index": 9977,
+  "verdicts": {
+   "C1": "partially_confirmed (substance ok; reproduce grep fails: OCR reads 'rant')",
+   "C2": "confirmed",
+   "C3": "confirmed",
+   "C4": "confirmed",
+   "C5": "confirmed",
+   "C6": "partially_confirmed (substance ok; reproduce grep fails on fi-ligature)",
+   "C7": "partially_confirmed (text is Stewart 1994 BOX 1 verbatim; 'Stewart's lecture' not what Schuermann says)",
+   "C8": "confirmed",
+   "C9": "confirmed",
+   "C10": "confirmed",
+   "C11": "confirmed",
+   "C12": "partially_confirmed (280,085,922 / 100,365,745 not in any cited source)",
+   "C13": "partially_confirmed (Stewart 1994 verified to use the name; origin not established; Tokarz uses both spellings)"
+  }
+ },
+ "notes": [
+  "Stewart 1994 manuscript fetched from web.archive.org (URL in Wikipedia citation); it names 'X.P.Kong and E.G.D.Cohen' and titles BOX 1 'The Cohen-Kong Theorem: ant trajectories are unbounded'; BOX 1 is the verbatim source of the Schuermann proof paragraph.",
+  "Etse 2606.26677v1 explicitly says OEIS A282425 lists S_{n,n}-1 and had an error of 1 for S_{7,7}; Etse v1 does not cite math/0006108.",
+  "Gale 1993 remains unreachable (Springer login, Google Books captcha)."
+ ]
+}
