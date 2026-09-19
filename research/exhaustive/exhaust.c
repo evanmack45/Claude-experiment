@@ -175,7 +175,7 @@ int main(int argc, char **argv)
     int64_t ncert = 0, ncap = 0, nbound = 0, nnontr = 0;
     int64_t smin = -1, smax = -1; uint64_t argmax = 0, argmin = 0; result_t rmax = {0}, rmin = {0};
     double ssum = 0; int64_t dircount[4] = {0, 0, 0, 0};
-    int64_t total_steps = 0, max_cert_steps = 0, max_abs_coord = 0;
+    int64_t total_steps = 0, max_cert_steps = 0, max_abs_coord = 0, n_disp_not_2_2 = 0;
     struct timespec t0, t1; clock_gettime(CLOCK_MONOTONIC, &t0);
 
     for (uint64_t cfg = lo; cfg < hi; cfg++) {
@@ -185,6 +185,7 @@ int main(int argc, char **argv)
         if (ac > max_abs_coord) max_abs_coord = ac;
         if (r.status == ST_CERT) {
             ncert++; hist[r.s]++; ssum += (double)r.s; dircount[r.dirid]++;
+            if (abs(r.dispx) != 2 || abs(r.dispy) != 2) n_disp_not_2_2++;
             if (r.steps > max_cert_steps) max_cert_steps = r.steps;
             if (smax < 0 || r.s > smax) { smax = r.s; argmax = cfg; rmax = r; }
             if (smin < 0 || r.s < smin) { smin = r.s; argmin = cfg; rmin = r; }
@@ -195,7 +196,7 @@ int main(int argc, char **argv)
             print_cells(fspec, k, cfg); fputc('\n', fspec); fflush(fspec);
         }
         if (frec) {
-            fprintf(frec, "%llu,%d,%lld,%lld,%d,%d,%s,%d,%d,%d,%d,%d,%d,\"",
+            fprintf(frec, "%llu,%d,%lld,%lld,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,\"",
                     (unsigned long long)cfg, r.status, (long long)r.s, (long long)r.steps,
                     r.dispx, r.dispy, r.status == ST_CERT ? DIRNAME[r.dirid] : "none",
                     r.fx, r.fy, r.bx0, r.by0, r.bx1, r.by1);
@@ -228,6 +229,7 @@ int main(int argc, char **argv)
     fprintf(fsum, ", \"argmin_dir\": \"%s\",\n", DIRNAME[rmin.dirid]);
     fprintf(fsum, "\"dir_counts\": {\"+x,+y\": %lld, \"+x,-y\": %lld, \"-x,+y\": %lld, \"-x,-y\": %lld},\n",
             (long long)dircount[0], (long long)dircount[1], (long long)dircount[2], (long long)dircount[3]);
+    fprintf(fsum, "\"n_disp_not_2_2\": %lld,\n", (long long)n_disp_not_2_2);
     fprintf(fsum, "\"total_steps\": %lld, \"elapsed_s\": %.3f, \"msteps_per_s\": %.2f, \"max_cert_steps\": %lld, \"max_abs_coord\": %lld\n}\n",
             (long long)total_steps, el, total_steps / el / 1e6, (long long)max_cert_steps, (long long)max_abs_coord);
     fclose(fsum); fclose(fspec); if (frec) fclose(frec);
