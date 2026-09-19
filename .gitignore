@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.o
+*.so
+research/**/bin/
+research/**/*.bin
+movie/frames/
+movie/build/
+*.wav
+.venv/
