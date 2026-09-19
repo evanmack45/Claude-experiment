@@ -1,0 +1,7 @@
+{"k": 5, "lo": 0, "hi": 16777216, "cap": 5000000, "n_configs": 16777216,
+"n_cert": 16777216, "n_cap": 0, "n_bound": 0, "n_nontravel": 0,
+"s_min": 112, "argmin_cfg": 3909763, "s_max": 209633, "argmax_cfg": 4084073,
+"dir_counts": [4445599, 4073481, 4100903, 4157233],
+"total_steps": 106095159010, "max_steps": 212086, "max_abs_final_pos": 211, "max_abs_any_cell_on_path": 213,
+"n_disp_not_pm2": 0, "n_literal_recheck_failures": 0, "n_bbox_mismatch": 0,
+"n_altcert_differs": 0, "altcert_diff_sum": 0, "elapsed_s": 1052.625, "msteps_per_s": 100.79}

@@ -2,7 +2,7 @@
 """Verifier: row-by-row comparison of my independent re-run (out/myA.csv, out/myB.csv) with the
 finder's out/procA.csv, out/procB.csv over all 400,000 main-sweep configurations."""
 import csv, os
-F = '/home/user/Claude-experiment/research/random/out'; V = '/home/user/Claude-experiment/research/verify/random/out'
+_H = os.path.dirname(os.path.abspath(__file__)); F = os.path.join(_H, '..', '..', 'random', 'out'); V = os.path.join(_H, 'out')
 def load(d, names):
     out = {}
     for f in names:

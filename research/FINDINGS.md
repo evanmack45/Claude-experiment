@@ -165,14 +165,21 @@ disagreements in 14 fields) and all 4,330,000 extended-sweep configurations (73 
 byte-identical).
 
 * 400,000 / 400,000 certified; 0 cap, 0 boundary. Onset min 101, median 5767, mean 9788.37,
-  max 196,974; **67.4%** of random configurations reach the highway sooner than the empty grid.
+  max 196,974; **67.4%** of the 400,000 main-sweep configurations reach the highway sooner than the
+  empty grid (pooled over all 4,730,000 draws, from the per-cell counters: 3,139,738 / 4,730,000 = 66.4%).
 * Directions: +x,+y 100,245; +x,-y 98,961; -x,+y 100,527; -x,-y 100,267.
 * Longest main-sweep onset: 196,974 (k=64, p=0.75, sample 4491, 3121 black cells, -x,-y,
   certified at 199,230); cell list in `research/results/random_longest.json`.
 * Longest single run 199,230 steps; largest |coordinate| at any step **227** (the finder's
   224 is the max |final coordinate|).
-* All sweeps together: **4,730,000 distinct configurations, 4,730,000 certified highways**,
-  boxes up to 512 x 512 with up to ~131,000 black cells. Caveat found by verifier 2: the seed
+* All sweeps together: **4,730,000 random draws, 4,730,000 certified highways**, boxes up to
+  512 x 512 with up to ~131,000 black cells. These are runs, not distinct patterns: a Bernoulli(p)
+  draw in a small box often repeats an earlier draw (the 560,000 draws in the 5 x 5 box contain
+  only 327,611 distinct patterns, the 560,000 draws in the 8 x 8 box 553,399; in 12 x 12 and
+  larger boxes repeats are negligible), so the number of distinct random configurations is at
+  most about 4,491,000 (`research/random/count_distinct.py`). An earlier version of this
+  section called all 4,730,000 draws distinct; that was wrong (found by the adversarial review on
+  the pull request). Second caveat, found by verifier 2: the seed
   multiplier in `randexp.c` equals the splitmix64 increment, so the "extra seeds" 20260920-22
   are the main stream shifted by 1-3 outputs; overlapping (k,p) cells contain raster-shifted
   copies of main-sweep configurations. They are distinct, valid Bernoulli(p) boxes and their
@@ -182,8 +189,11 @@ byte-identical).
   15472 (k=64); log-log slope 0.788 over all k, 0.953 for k >= 24. Scaling sweep (seed
   20260921, 10,000 samples per k, all certified): medians 14966.5 (k=64), 22185, 31523, 48029.5,
   68823.5, 108796.5, 159241 (k=512); median ~ k^1.138 over k = 64..512 (r^2 0.9986), i.e.
-  ~ N^0.569 in the number of black cells. The ant crosses random media near-ballistically, not
-  diffusively (a note in random.json saying "k^2" contradicts its own fit and is wrong).
+  ~ N^0.569 in the number of black cells. Within this range the median grows far more slowly than
+  the diffusive k^2 one might guess, but this is a finite-range fit of the onset step at one
+  density (seven box sizes), not a measurement of transport and not an asymptotic law; the
+  main-sweep slope also depends on the fitted range (0.788 over k = 5..64, 0.953 for k >= 24).
+  The stale "k^2 (diffusive exit)" note in random.json has been corrected.
 * Density sweep at k = 32 (190,000 configs, all certified): median 6942 (p=0.05) to 10147
   (p=0.95); mild dependence.
 * **Longest onset found anywhere in the project: 1,323,594 steps**, k=512, p=0.5, seed 20260921,
@@ -199,6 +209,14 @@ with its own simulator, re-implemented the D chain from scratch, and found 0 mis
 * Totals: **3,484,889 simulation runs, 0 non-certified, cap (5e7) never hit**. The finder
   called these "configurations"; the verifier found 806,799 duplicate GA genomes, so the number
   of distinct configurations is about 2,677,946 (2,676,229 distinct GA genomes).
+  Evidence and reproduction: `sh research/adversarial/run_all.sh` regenerates attacks A, C, D and
+  the two main GA runs deterministically (21,861 runs). The two extended GA runs (1,742,445 and
+  1,720,583 evaluations) were wall-clock-limited and are archived, not regenerated: their
+  complete evaluation logs are committed as `research/adversarial/evidence/*.csv.gz`, and
+  `python3 research/adversarial/count_evidence.py` recounts them (3,483,028 GA evaluations in all,
+  0 non-certified, 2,676,229 distinct genomes, best 233,232) and re-simulates a random sample of
+  rows with `antsim`. Before this evidence was committed the 3,484,889 total could not be
+  audited from the repository (found by the adversarial review on the pull request).
 * Attack A (obstacles on the empty-grid highway): 1512 placements, 616 actually hit, 896 missed
   (every miss gives exactly 9977). All 616 hits re-formed a certified highway with a
   re-randomised direction (+x,-y 238; -x,-y 264; -x,+y 85; +x,+y 29). Extra chaos after contact:
@@ -222,8 +240,10 @@ with its own simulator, re-implemented the D chain from scratch, and found 0 mis
 * Absolute record: **1,323,594 steps** (random sweep, k = 512, p = 0.5, seed 20260921,
   sample_index 9269, 130,511 black cells, highway +x,-y, certified at 1,337,591; regenerate with
   `./randexp one 512 0.5 20260921 9269 20000000` or `./randexp dump 512 0.5 20260921 9269`).
-* Record per black cell / smallest pattern: **259,274 steps from 16 black cells** (Attack D,
-  cells listed in `research/adversarial/out/attack_d_final.cfg` and adversarial.json).
+* Longest onset from a hand-constructed pattern: **259,274 steps from 16 black cells** (Attack D,
+  cells listed in `research/adversarial/out/attack_d_final.cfg` and adversarial.json). Per black
+  cell the 11-cell 5 x 5 maximum is the larger record (233,232 / 11 = 21,203 steps per cell versus
+  259,274 / 16 = 16,205).
 * Provable record within a 5 x 5 box: **233,232 steps from 11 black cells** (exhaustive; this
   is the true maximum over all 33,554,432 patterns in that box).
 
@@ -232,8 +252,8 @@ with its own simulator, re-implemented the D chain from scratch, and found 0 mis
 It says: in roughly 41.8 million simulated runs (33.6 M exhaustive + 4.73 M random + ~3.48 M
 adversarial), covering every pattern in a 5 x 5 box, random boxes up to 512 x 512, structured
 seeds, obstacles dropped on running highways, and millions of hill-climb mutations, **not one
-run failed to reach a certified 104-step highway**, and no run came within a factor of 15 of
-any step cap. The typical onset in a random box grows only about linearly with the box side,
+run failed to reach a certified 104-step highway**, and the longest run used 6.7% of its step cap
+(1,337,591 of 20,000,000 steps; every other run used less). The typical onset in a random box grows only about linearly with the box side,
 and most perturbations of the empty grid shorten the chaotic phase. The onset landscape is
 rough (single-cell flips reshuffle it) and heavy-tailed (the 5 x 5 maximum is 7300x its minimum).
 
@@ -259,7 +279,7 @@ maximum 233,232 is a theorem about that box), plus a well-measured statistical p
 | 5 | Every one of the 33,554,432 patterns in a 5 x 5 box builds a highway | 33,554,432 / 33,554,432; 216,439,582,470 steps; 1037 s | research/results/exhaustive.json |
 | 6 | The fastest highway ever: a 5 x 5 pattern that is on the road after 32 steps | s = 32, 12 black cells, cfg 17781263 | research/results/exhaustive.json |
 | 7 | The slowest 5 x 5 pattern: 11 black cells, 23x longer than the empty grid | s = 233,232, certified at 235,418 | research/results/exhaustive.json |
-| 8 | 4,730,000 random boxes, all highways; most perturbations shorten the chaos | 4,730,000 / 4,730,000; 67.4% faster than 9977 | research/results/random.json |
+| 8 | 4,730,000 random draws, all highways; most perturbations shorten the chaos | 4,730,000 / 4,730,000 (at most ~4.49 M distinct); 67.4% of the main sweep faster than 9977 | research/results/random.json |
 | 9 | The longest onset found anywhere: a 512 x 512 box with 130,511 black cells | 1,323,594 steps | research/results/random.json |
 | 10 | Drop a block on the highway: the ant always rebuilds one; chain four blocks and it takes 259,274 steps | 616/616 rebuilt, median 5012 extra steps; 16 cells -> 259,274 | research/results/adversarial.json |
 
@@ -268,7 +288,7 @@ Bonus (verified): median onset in a p = 0.5 box grows like k^1.14 for k = 64..51
 
 ## 6. Reproduction (one command per result)
 
-All paths are relative to `/home/user/Claude-experiment/research`. The finder commands are the
+All paths are relative to the `research/` directory of the repository. The finder commands are the
 primary route; the verifier commands re-derive the same numbers with independent code. Commands
 marked (long) take minutes to tens of minutes.
 
@@ -291,6 +311,8 @@ marked (long) take minutes to tens of minutes.
 | absolute record 1323594 | `cd random && ./randexp one 512 0.5 20260921 9269 20000000` |
 | seed-shift caveat | `cd verify/random-review && python3 test_seed_shift.py` |
 | adversarial A, C, D, B main (~30 s) | `cd adversarial && sh run_all.sh` |
+| archived extended GA evidence recount + 200-row re-simulation | `cd adversarial && python3 count_evidence.py` |
+| random draws: distinct-pattern counts (5 x 5, 8 x 8) | `cd random && python3 count_distinct.py` |
 | Attack D record 259274 | `cd adversarial && ./antsim run out/attack_d_final.cfg` |
 | Attack B best 233232 | `cd adversarial && ./antsim run out/attack_b_best.cfg && python3 verify_py.py out/attack_b_best.cfg 237392` |
 | adversarial independent re-simulation | `cd verify/adversarial && ./run_all.sh` |

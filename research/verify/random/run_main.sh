@@ -1,7 +1,7 @@
 #!/bin/sh
 # Verifier's full re-run of the finder's main sweep with the independent simulator mysim (2 processes).
 set -e
-D=/home/user/Claude-experiment/research/verify/random
+D="$(cd "$(dirname "$0")" && pwd)"
 cd "$D"
 gcc -O3 -march=native -o mysim mysim.c -lm
 rm -f out/myA.csv out/myB.csv

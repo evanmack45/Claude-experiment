@@ -2,7 +2,7 @@
  * exhaust.c -- exhaustive Langton's-ant highway test over all 2^(k*k)
  * initial configurations in a k x k box (research/CONVENTIONS.md).
  *
- * Usage: ./exhaust k lo hi cap outprefix [records]
+ * Usage: ./exhaust k lo hi cap outprefix [records] [strict]
  *   k         box size (1..5)
  *   lo, hi    configuration index range [lo, hi) (hi <= 2^(k*k))
  *   cap       step cap per configuration
@@ -33,6 +33,26 @@
  * direction of travel is the sign of the displacement over the last period
  * (pos(n) - pos(n-104)). Both components of that displacement must be nonzero.
  * When both conditions hold the run is certified and stopped.
+ *
+ * STRICT mode (7th argument = 1) replaces the stopping rule by a certificate
+ * that is sufficient for the highway to continue for ever (see README.md,
+ * "Strict certificate"): in addition to the above, (a) the heading after step
+ * n equals the heading after step n-104 (net rotation over a period is zero,
+ * so from step L on every period is a translate of the previous one),
+ * (b) EVERY one of the last 104 positions is >= 20 cells beyond the snapshot
+ * bounding box in both travel coordinates (not only the current position),
+ * and (c) the bounding box of the last 104 positions is narrower than the
+ * displacement accumulated over the 20 verified periods in each coordinate
+ * (so the cells read in any future period are disjoint from those read in
+ * the first period after L). Under (a)-(c) the states read in period j+1
+ * equal, by translation, those read in period j for every j >= 21: the
+ * turns, hence the path, repeat for ever. Strict mode never certifies
+ * earlier than the default rule; it may certify a few hundred steps later.
+ *
+ * Status 3 ("periodic but not traveling") is only assigned when the cap is
+ * reached with a zero displacement component; a cap reached while a
+ * traveling periodic regime is still waiting for its escape margin stays
+ * status 1 (cap).
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +71,7 @@
 
 enum { ST_CERT = 0, ST_CAP = 1, ST_BOUNDARY = 2, ST_NONTRAVEL = 3 };
 
+static int strict = 0;      /* 1 = strict certificate (see header) */
 static uint8_t *cells;      /* bit0 = colour, bit1 = touched */
 static int32_t *touched;    /* indices of touched cells for fast reset */
 static long ntouched;
@@ -86,9 +107,10 @@ static void run(int k, uint64_t cfg, int64_t cap, result_t *r)
     }
     uint8_t tring[RING];
     int32_t rbx0[RING], rby0[RING], rbx1[RING], rby1[RING], rpx[RING], rpy[RING];
+    uint8_t rdir[RING];
     int x = ORIGIN, y = ORIGIN, dir = 0;
     /* state after step 0 */
-    rbx0[0] = bx0; rby0[0] = by0; rbx1[0] = bx1; rby1[0] = by1; rpx[0] = x; rpy[0] = y;
+    rbx0[0] = bx0; rby0[0] = by0; rbx1[0] = bx1; rby1[0] = by1; rpx[0] = x; rpy[0] = y; rdir[0] = 0;
     int sbx0 = bx0, sby0 = by0, sbx1 = bx1, sby1 = by1; /* snapshot bbox at step L */
     int64_t L = 0, n = 0;
     int status = ST_CAP, dispx = 0, dispy = 0;
@@ -116,18 +138,34 @@ static void run(int k, uint64_t cfg, int64_t cap, result_t *r)
         }
         tring[ri] = t;
         rbx0[ri] = bx0; rby0[ri] = by0; rbx1[ri] = bx1; rby1[ri] = by1;
-        rpx[ri] = x; rpy[ri] = y;
+        rpx[ri] = x; rpy[ri] = y; rdir[ri] = (uint8_t)dir;
         if (n >= L + CERT_LEN) {
             int pi = (int)((n - PERIOD) & RMASK);
             dispx = x - rpx[pi]; dispy = y - rpy[pi];
             if (dispx != 0 && dispy != 0) {
                 int okx = dispx > 0 ? (x >= sbx1 + MARGIN) : (x <= sbx0 - MARGIN);
                 int oky = dispy > 0 ? (y >= sby1 + MARGIN) : (y <= sby0 - MARGIN);
+                if (okx && oky && strict) {
+                    /* (a) heading periodicity */
+                    if (rdir[pi] != (uint8_t)dir) okx = 0;
+                    /* (b) margin at every position of the last period, (c) period footprint */
+                    int px0 = x, px1 = x, py0 = y, py1 = y;
+                    for (int i = 0; i < PERIOD && okx; i++) {
+                        int qi = (int)((n - i) & RMASK);
+                        int qx = rpx[qi], qy = rpy[qi];
+                        int mx = dispx > 0 ? (qx >= sbx1 + MARGIN) : (qx <= sbx0 - MARGIN);
+                        int my = dispy > 0 ? (qy >= sby1 + MARGIN) : (qy <= sby0 - MARGIN);
+                        if (!(mx && my)) okx = 0;
+                        if (qx < px0) px0 = qx; if (qx > px1) px1 = qx;
+                        if (qy < py0) py0 = qy; if (qy > py1) py1 = qy;
+                    }
+                    if (px1 - px0 >= NPERIODS * abs(dispx) || py1 - py0 >= NPERIODS * abs(dispy)) okx = 0;
+                }
                 if (okx && oky) { status = ST_CERT; break; }
             }
         }
     }
-    if (status == ST_CAP && n >= L + CERT_LEN) status = ST_NONTRAVEL;
+    if (status == ST_CAP && n >= L + CERT_LEN && (dispx == 0 || dispy == 0)) status = ST_NONTRAVEL;
     /* fast reset */
     for (long i = 0; i < ntouched; i++) cells[touched[i]] = 0;
 
@@ -151,12 +189,13 @@ static void print_cells(FILE *f, int k, uint64_t cfg)
 
 int main(int argc, char **argv)
 {
-    if (argc < 6) { fprintf(stderr, "usage: %s k lo hi cap outprefix [records]\n", argv[0]); return 1; }
+    if (argc < 6) { fprintf(stderr, "usage: %s k lo hi cap outprefix [records] [strict]\n", argv[0]); return 1; }
     int k = atoi(argv[1]);
     uint64_t lo = strtoull(argv[2], 0, 10), hi = strtoull(argv[3], 0, 10);
     int64_t cap = atoll(argv[4]);
     const char *pre = argv[5];
     int records = argc > 6 ? atoi(argv[6]) : 0;
+    strict = argc > 7 ? atoi(argv[7]) : 0;
     if (k < 1 || k > 5) { fprintf(stderr, "k must be 1..5\n"); return 1; }
     uint64_t total = 1ULL << (k * k);
     if (hi > total) hi = total;
@@ -217,8 +256,8 @@ int main(int argc, char **argv)
     fwrite(hist, sizeof(uint32_t), (size_t)cap + 1, fhist); fclose(fhist);
 
     snprintf(fn, sizeof fn, "%s_summary.txt", pre); fsum = fopen(fn, "w");
-    fprintf(fsum, "{\n\"k\": %d, \"lo\": %llu, \"hi\": %llu, \"cap\": %lld, \"grid\": %d,\n",
-            k, (unsigned long long)lo, (unsigned long long)hi, (long long)cap, GRID);
+    fprintf(fsum, "{\n\"k\": %d, \"lo\": %llu, \"hi\": %llu, \"cap\": %lld, \"grid\": %d, \"strict\": %d,\n",
+            k, (unsigned long long)lo, (unsigned long long)hi, (long long)cap, GRID, strict);
     fprintf(fsum, "\"n_configs\": %llu, \"n_certified\": %lld, \"n_cap\": %lld, \"n_boundary\": %lld, \"n_nontraveling_periodic\": %lld,\n",
             (unsigned long long)(hi - lo), (long long)ncert, (long long)ncap, (long long)nbound, (long long)nnontr);
     fprintf(fsum, "\"s_min\": %lld, \"s_max\": %lld, \"s_sum\": %.0f,\n", (long long)smin, (long long)smax, ssum);

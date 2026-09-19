@@ -1,0 +1,157 @@
+{
+ "seed": 2,
+ "budget": 10000,
+ "evals": 10000,
+ "lam": 4,
+ "stall": 600,
+ "start_k5": true,
+ "cap": 50000000,
+ "restarts": 10,
+ "best_onset": 233232,
+ "best_outcome": "certified",
+ "best_direction": "+x,-y",
+ "best_eval": 1,
+ "best_restart": 0,
+ "best_genome_hex": "0000000000000280c80000280b8000000000",
+ "best_cells": [
+  [
+   0,
+   -2
+  ],
+  [
+   2,
+   -2
+  ],
+  [
+   -2,
+   -1
+  ],
+  [
+   -1,
+   -1
+  ],
+  [
+   2,
+   -1
+  ],
+  [
+   0,
+   1
+  ],
+  [
+   2,
+   1
+  ],
+  [
+   -2,
+   2
+  ],
+  [
+   0,
+   2
+  ],
+  [
+   1,
+   2
+  ],
+  [
+   2,
+   2
+  ]
+ ],
+ "best_result": {
+  "outcome": "certified",
+  "onset_step": 233232,
+  "direction": "+x,-y",
+  "period": 104,
+  "disp": [
+   2,
+   -2
+  ],
+  "steps_simulated": 235418,
+  "cert_step": 235418,
+  "periods_verified": 20,
+  "cap": 50000000,
+  "grid": 8192,
+  "n_black_init": 11,
+  "first_initial_black_read": 8,
+  "final_pos": [
+   97,
+   -105
+  ],
+  "final_dir": "S",
+  "bbox_pre_onset": [
+   -68,
+   -85,
+   60,
+   50
+  ],
+  "bbox_all": [
+   -68,
+   -106,
+   102,
+   50
+  ],
+  "n_black_final": 6489,
+  "n_touched": 12681,
+  "fitness": 233232,
+  "genome": "0000000000000280c80000280b8000000000",
+  "eval": 1,
+  "restart": 0
+ },
+ "n_non_certified": 0,
+ "non_certified": [],
+ "restart_history": [
+  {
+   "restart": 0,
+   "final_parent_onset": 233232,
+   "evals_at_end": 601
+  },
+  {
+   "restart": 1,
+   "final_parent_onset": 85112,
+   "evals_at_end": 2210
+  },
+  {
+   "restart": 2,
+   "final_parent_onset": 61377,
+   "evals_at_end": 3079
+  },
+  {
+   "restart": 3,
+   "final_parent_onset": 60889,
+   "evals_at_end": 3872
+  },
+  {
+   "restart": 4,
+   "final_parent_onset": 61321,
+   "evals_at_end": 5053
+  },
+  {
+   "restart": 5,
+   "final_parent_onset": 77494,
+   "evals_at_end": 6586
+  },
+  {
+   "restart": 6,
+   "final_parent_onset": 117785,
+   "evals_at_end": 8119
+  },
+  {
+   "restart": 7,
+   "final_parent_onset": 65616,
+   "evals_at_end": 8820
+  },
+  {
+   "restart": 8,
+   "final_parent_onset": 57228,
+   "evals_at_end": 9697
+  },
+  {
+   "restart": 9,
+   "final_parent_onset": 75569,
+   "evals_at_end": 10000
+  }
+ ],
+ "elapsed_s": 1.7034566402435303
+}

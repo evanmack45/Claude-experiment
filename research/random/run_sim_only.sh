@@ -1,8 +1,7 @@
 #!/bin/sh
 # simulation part only of run_all.sh
 set -e
-D=/home/user/Claude-experiment/research/random
-cd "$D"
+cd "$(dirname "$0")"
 gcc -O3 -march=native -Wall -o randexp randexp.c -lm
 mkdir -p out
 SEED=20260919

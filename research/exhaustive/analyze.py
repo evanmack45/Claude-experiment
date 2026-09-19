@@ -2,7 +2,7 @@
 """analyze.py -- merge the exhaust.c outputs for k=1..5, compute statistics,
 histograms, run the naive.py sanity checks, and write
 research/results/exhaustive.json.  Run from anywhere:
-    python3 /home/user/Claude-experiment/research/exhaustive/analyze.py
+    python3 research/exhaustive/analyze.py
 """
 import json, os, sys, glob, csv
 import numpy as np

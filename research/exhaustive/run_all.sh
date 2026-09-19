@@ -1,11 +1,11 @@
 #!/bin/sh
 # Reproduces every number in research/results/exhaustive.json from scratch.
-# Usage: sh /home/user/Claude-experiment/research/exhaustive/run_all.sh
+# Usage: sh research/exhaustive/run_all.sh   (from any directory)
 # Wall time: ~4 s for k<=4, ~17 min for k=5 (two processes, ~105 Msteps/s each).
 set -e
-D=/home/user/Claude-experiment/research/exhaustive
-cd "$D"
+cd "$(dirname "$0")"
 gcc -O3 -march=native -o exhaust exhaust.c
+mkdir -p out
 mkdir -p out/k5
 CAP=5000000
 ./exhaust 1 0 2      $CAP out/k1 1

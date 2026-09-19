@@ -6962,7 +6962,8 @@
   "grand_totals_all_sweeps": {
    "total_configurations": 4730000,
    "total_certified": 4730000,
-   "total_non_certified": 0
+   "total_non_certified": 0,
+   "note_distinct_configurations": "total_configurations counts draws (runs). Draws are independent Bernoulli(p) samples and repeat in small boxes: the 560,000 k=5 draws contain 327,611 distinct patterns and the 560,000 k=8 draws 553,399 (research/random/count_distinct.py); repeats for k>=12 are negligible, so the number of distinct configurations is at most about 4,491,000."
   },
   "python_cross_check": {
    "n_checked": 784,
@@ -6974,9 +6975,9 @@
  "notes": [
   "Main sweep: 8 k-values x 5 densities x 10000 samples = 400000 configurations, every one certified (see totals).",
   "Onset statistics are over certified samples only (all samples in every cell were certified, so this is the full cell).",
-  "For small boxes (k<=12) the onset distribution resembles the empty-grid case (s=9977 for the empty grid); for large k the onset is dominated by the time the ant needs to leave the random box, which grows roughly like k^2 (diffusive exit): see scaling fits.",
+  "For small boxes (k<=12) the onset distribution resembles the empty-grid case (s=9977 for the empty grid); for large k the onset is dominated by the time the ant needs to leave the random box; the fitted median grows about like k^1.14 over k=64..512 at p=0.5 (far slower than a diffusive k^2), a finite-range fit, not an asymptotic law: see scaling fits.",
   "median uses numpy.median (average of the two middle values for even counts); percentiles use the lower-order statistic.",
   "Scaling verdict: over k=64..512 at p=0.5 the median onset grows as k^1.14 (least squares on logs), i.e. as N^0.57 in the number of black cells N=k^2 p -- roughly the square root of N, far below linear in N and nowhere near exponential: the data suggest polynomial (in fact sub-linear in N, near-linear in k) growth of the typical onset.",
-  "Even the per-cell maximum over 10000 samples grows only from 1.7e5 (k=5) to 1.3e6 (k=512) steps; no run in any sweep came within a factor 15 of the 2e7 step cap."
+  "Even the per-cell maximum over 10000 samples grows only from 1.7e5 (k=5) to 1.3e6 (k=512) steps; the longest run in any sweep used 1,337,591 of the 2e7-step cap (6.7%)."
  ]
 }

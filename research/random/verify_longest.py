@@ -5,7 +5,7 @@ matches the JSON, simulates in Python and recomputes onset, certification step, 
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from verify_py import gen_config, analyze
-L = json.load(open('/home/user/Claude-experiment/research/results/random_longest.json'))
+L = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'results', 'random_longest.json')))
 black = gen_config(L['k'], L['p'], L['seed'], L['sample_index'])
 assert black == set(map(tuple, L['black_cells'])), 'black cell list mismatch'
 s, cert, dirname, bbox = analyze(black, L['certification_step'] + 500)

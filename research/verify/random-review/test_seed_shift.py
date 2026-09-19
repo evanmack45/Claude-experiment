@@ -7,7 +7,7 @@ sample idx of seed S+1 is sample idx of seed S with the raster index shifted by 
 (seed 20260919) and the extended sweep (seed 20260920) at the same sample_index."""
 import subprocess, json, csv, os
 import numpy as np
-R = '/home/user/Claude-experiment/research/random'
+R = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'random')
 def dump(k, p, seed, idx):
     j = json.loads(subprocess.run([R + '/randexp', 'dump', str(k), str(p), str(seed), str(idx)], capture_output=True, text=True, check=True).stdout)
     xmin = -(k // 2)

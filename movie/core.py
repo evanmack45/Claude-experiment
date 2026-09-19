@@ -353,23 +353,82 @@ def draw_ant(img: Image.Image, cam: Camera, x: int, y: int, d: int, color, glow=
 # Text
 # --------------------------------------------------------------------------
 
-FONT_DIR = "/usr/share/fonts/truetype"
-FONTS = {
-    "bold": f"{FONT_DIR}/dejavu/DejaVuSans-Bold.ttf",
-    "regular": f"{FONT_DIR}/dejavu/DejaVuSans.ttf",
-    "mono": f"{FONT_DIR}/dejavu/DejaVuSansMono.ttf",
-    "monobold": f"{FONT_DIR}/dejavu/DejaVuSansMono-Bold.ttf",
-    "serif": f"{FONT_DIR}/dejavu/DejaVuSerif-Bold.ttf",
-    "liberation-bold": f"{FONT_DIR}/liberation/LiberationSans-Bold.ttf",
-    "liberation": f"{FONT_DIR}/liberation/LiberationSans-Regular.ttf",
+# Font discovery: DejaVu (and Liberation) TTFs are searched in the usual Linux/macOS/Windows
+# font directories, in $LANGTON_FONT_DIR, and in matplotlib's bundled copy of DejaVu if that
+# package happens to be installed.  Set LANGTON_FONT_DIR to a directory holding the .ttf files
+# (any layout; the search is recursive) when none of the defaults apply.
+_FONT_FILES = {
+    "bold": "DejaVuSans-Bold.ttf",
+    "regular": "DejaVuSans.ttf",
+    "mono": "DejaVuSansMono.ttf",
+    "monobold": "DejaVuSansMono-Bold.ttf",
+    "serif": "DejaVuSerif-Bold.ttf",
+    "liberation-bold": "LiberationSans-Bold.ttf",
+    "liberation": "LiberationSans-Regular.ttf",
 }
+_FONT_SEARCH_DIRS = [
+    os.environ.get("LANGTON_FONT_DIR", ""),
+    "/usr/share/fonts/truetype/dejavu", "/usr/share/fonts/truetype/liberation", "/usr/share/fonts/truetype",
+    "/usr/share/fonts/dejavu", "/usr/share/fonts/TTF", "/usr/share/fonts", "/usr/local/share/fonts",
+    os.path.expanduser("~/.fonts"), os.path.expanduser("~/.local/share/fonts"),
+    os.path.expanduser("~/Library/Fonts"), "/Library/Fonts", "/System/Library/Fonts", "/opt/homebrew/share/fonts",
+    "C:/Windows/Fonts",
+]
 _font_cache: dict = {}
+_font_paths: dict = {}
+
+
+def _matplotlib_font_dir():
+    try:
+        import matplotlib  # type: ignore
+
+        return os.path.join(os.path.dirname(matplotlib.__file__), "mpl-data", "fonts", "ttf")
+    except Exception:
+        return ""
+
+
+def find_font_file(basename: str) -> str:
+    """Absolute path of a font file found by name in the search directories (recursive)."""
+    if basename in _font_paths:
+        return _font_paths[basename]
+    dirs = [d for d in _FONT_SEARCH_DIRS if d] + [_matplotlib_font_dir()]
+    for d in dirs:
+        if not d or not os.path.isdir(d):
+            continue
+        direct = os.path.join(d, basename)
+        if os.path.exists(direct):
+            _font_paths[basename] = direct
+            return direct
+        for root, _dirs, files in os.walk(d):
+            if basename in files:
+                _font_paths[basename] = os.path.join(root, basename)
+                return _font_paths[basename]
+    raise FileNotFoundError(
+        f"font {basename} not found; install the DejaVu fonts (package fonts-dejavu / dejavu-fonts) or set "
+        f"LANGTON_FONT_DIR to a directory containing it. Searched: {', '.join(d for d in dirs if d)}")
+
+
+# Backwards-compatible view: FONTS[name] resolves lazily to the discovered path.
+class _FontTable(dict):
+    def __missing__(self, name):
+        if name in _FONT_FILES:
+            return find_font_file(_FONT_FILES[name])
+        raise KeyError(name)
+
+    def get(self, name, default=None):
+        try:
+            return self[name]
+        except (KeyError, FileNotFoundError):
+            return default
+
+
+FONTS = _FontTable()
 
 
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
     key = (name, size)
     if key not in _font_cache:
-        path = FONTS.get(name, name)
+        path = FONTS.get(name, None) or name
         _font_cache[key] = ImageFont.truetype(path, size)
     return _font_cache[key]
 

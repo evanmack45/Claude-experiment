@@ -1,0 +1,5 @@
+[out/k5/h0] 4194304/16777216 259s 102.2 Msteps/s cert=4194304 cap=0 bound=0 nt=0 smax=209633
+[out/k5/h0] 8388608/16777216 526s 101.4 Msteps/s cert=8388608 cap=0 bound=0 nt=0 smax=209633
+[out/k5/h0] 12582912/16777216 785s 101.3 Msteps/s cert=12582912 cap=0 bound=0 nt=0 smax=209633
+[out/k5/h0] 16777216/16777216 1053s 100.8 Msteps/s cert=16777216 cap=0 bound=0 nt=0 smax=209633
+[out/k5/h0] done 1052.6s 100.8 Msteps/s

@@ -2,8 +2,9 @@
 """Compare ./randexp one against the reviewer's independent reference on tiny configs
 (k in 1..4, several seeds) including bbox, cert step, direction, final position."""
 import subprocess, json, sys
+import os
 from ref_ant import onset_and_cert
-R = '/home/user/Claude-experiment/research/random/randexp'
+R = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'random', 'randexp')
 cases = [(1, 0, 0, 0), (1, 1, 0, 0)] + [(k, p, 7, i) for k in (2, 3, 4) for p in (0.3, 0.7) for i in range(3)] + [(5, 0.5, 20260919, i) for i in range(4)]
 nfail = 0
 for (k, p, seed, idx) in cases:

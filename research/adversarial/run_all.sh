@@ -1,6 +1,7 @@
 #!/bin/sh
 # Reproduce every number in research/results/adversarial.json and adversarial_best.json.
 set -e; cd "$(dirname "$0")"
+mkdir -p out
 gcc -O3 -march=native -Wall -o antsim antsim.c
 printf '' > out/empty.cfg; printf '0 0\n' > out/origin.cfg; printf '[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]' > out/k3best.cfg
 for f in out/empty.cfg out/origin.cfg out/k3best.cfg; do python3 verify_py.py $f 60000; done   # cross-checks (9977, 9978, 43264)

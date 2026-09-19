@@ -406,10 +406,15 @@ def load_facts(path: str) -> Facts:
     for k, e in exhaustive.items():
         for f in ("n_configs", "n_highway", "max_onset", "cap_hits"):
             _get(raw, f"exhaustive.{k}.{f}")
+        if not (0 <= int(e["n_highway"]) <= int(e["n_configs"])) or int(e["cap_hits"]) > int(e["n_configs"]) - int(e["n_highway"]):
+            raise FactsError(f"movie_facts: exhaustive.{k} counts are inconsistent "
+                             f"(n_configs={e['n_configs']}, n_highway={e['n_highway']}, cap_hits={e['cap_hits']})")
     hist = _get(raw, "exhaustive.4.histogram_log_bins")
     rnd = _get(raw, "random")
     for f in ("total_tested", "total_highway", "longest_onset", "longest_config"):
         _get(raw, f"random.{f}")
+    if int(rnd["total_highway"]) > int(rnd["total_tested"]):
+        raise FactsError("movie_facts: random.total_highway exceeds random.total_tested")
     adv = raw.get("adversarial")
     if adv is not None:
         for f in ("longest_onset", "cap_hits", "n_tested"):
@@ -442,6 +447,9 @@ def load_facts(path: str) -> Facts:
     es = exhaustive.get(sk)
     if es is None:
         raise FactsError(f"movie_facts: missing required field 'exhaustive.{sk}' (S12 needs the complete {sk}x{sk} sweep)")
+    if int(es["n_configs"]) != (1 << (STUBBORN_K * STUBBORN_K)):
+        raise FactsError(f"movie_facts: exhaustive.{sk}.n_configs={es['n_configs']} is not the complete sweep "
+                         f"(2^{STUBBORN_K * STUBBORN_K} = {1 << (STUBBORN_K * STUBBORN_K)}); S12 cannot call its maximum provable")
     if int(es["n_highway"]) != int(es["n_configs"]) or int(es["cap_hits"]) != 0:
         raise FactsError(f"movie_facts: exhaustive.{sk} is not a complete certified sweep; S12 cannot call its maximum provable")
     scfg = _get(raw, f"exhaustive.{sk}.max_onset_config")
@@ -456,9 +464,22 @@ def load_facts(path: str) -> Facts:
     total_highway = sum(int(e["n_highway"]) for e in exhaustive.values()) + int(rnd["total_highway"])
     cap_hits = 0
     if adv is not None:
-        total_tested += int(adv["n_tested"])
-        total_highway += int(adv.get("n_highway", int(adv["n_tested"]) - int(adv["cap_hits"])))
+        # Exceptions come from the explicit non-certified count, never from cap hits alone: a
+        # facts file whose fields contradict each other aborts instead of displaying 0.
+        adv_n = int(adv["n_tested"])
         cap_hits = int(adv["cap_hits"])
+        adv_nc = int(adv["total_non_certified"]) if "total_non_certified" in adv else None
+        adv_hw = int(adv["n_highway"]) if "n_highway" in adv else None
+        if adv_nc is None and adv_hw is None:
+            raise FactsError("movie_facts: adversarial needs total_non_certified or n_highway (cap_hits alone is not a certification count)")
+        if adv_hw is None:
+            adv_hw = adv_n - adv_nc
+        elif adv_nc is not None and adv_hw != adv_n - adv_nc:
+            raise FactsError(f"movie_facts: adversarial.n_highway={adv_hw} but n_tested-total_non_certified={adv_n - adv_nc}")
+        if not (0 <= adv_hw <= adv_n) or cap_hits > adv_n - adv_hw:
+            raise FactsError(f"movie_facts: adversarial counts are inconsistent (n_tested={adv_n}, n_highway={adv_hw}, cap_hits={cap_hits})")
+        total_tested += adv_n
+        total_highway += adv_hw
     if "total_runs_all_experiments" in raw and int(raw["total_runs_all_experiments"]) != total_tested:
         raise FactsError(f"movie_facts: total_runs_all_experiments={raw['total_runs_all_experiments']} "
                          f"but the section-6 sum is {total_tested}")

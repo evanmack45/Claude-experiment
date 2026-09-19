@@ -8,14 +8,25 @@ K = 12; LO = -(K // 2); NCELL = K * K
 def cells_of_hex(h):
     bits = bin(int(h, 16))[2:].zfill(NCELL); return [[LO + i % K, LO + i // K] for i in range(NCELL) if bits[i] == '1']
 runs = {}
-for fn in sorted(glob.glob(os.path.join(here, 'out', 'attack_b_*.csv'))):
-    name = os.path.basename(fn)[len('attack_b_'):-4]
-    if not os.path.exists(fn[:-4] + '_summary.json'): print('skipping unfinished run', name); continue
-    rows = list(csv.DictReader(open(fn)))
+# Every Attack-B run is read from out/ (a fresh run) or, when absent there, from the committed
+# evidence/ copy (gzip CSV + summary) of the archived runs, so the historical totals can be
+# recomputed from the repository alone.
+import gzip, io
+sources = {}
+for fn in glob.glob(os.path.join(here, 'evidence', 'attack_b_*.csv.gz')):
+    sources[os.path.basename(fn)[len('attack_b_'):-7]] = fn
+for fn in glob.glob(os.path.join(here, 'out', 'attack_b_*.csv')):
+    sources[os.path.basename(fn)[len('attack_b_'):-4]] = fn
+for name in sorted(sources):
+    fn = sources[name]
+    summ_fn = (fn[:-7] if fn.endswith('.gz') else fn[:-4]) + '_summary.json'
+    if not os.path.exists(summ_fn): print('skipping unfinished run', name); continue
+    fh = io.TextIOWrapper(gzip.open(fn, 'rb')) if fn.endswith('.gz') else open(fn)
+    rows = list(csv.DictReader(fh))
     on = [int(r['onset']) for r in rows]; on_s = sorted(on)
     q = lambda p: on_s[min(len(on_s) - 1, int(p * len(on_s)))]
     bi = max(range(len(rows)), key=lambda i: on[i])
-    summ = json.load(open(fn[:-4] + '_summary.json'))
+    summ = json.load(open(summ_fn))
     runs[name] = dict(csv=os.path.relpath(fn, here), n_evals=len(rows), n_non_certified=sum(r['outcome'] != 'certified' for r in rows),
                       onset_max=on[bi], onset_mean=statistics.mean(on), onset_median=statistics.median(on),
                       p90=q(0.9), p99=q(0.99), p999=q(0.999), n_above_9977=sum(v > 9977 for v in on), n_above_100k=sum(v > 100000 for v in on),

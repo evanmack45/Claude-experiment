@@ -166,3 +166,12 @@ line `longest anywhere: 1,323,594 steps (512x512 box)` and the 5x5 onset histogr
 616 new roads / 1,512 walls on or beside the road (WALLS); 41,835,387 runs tested / 41,835,387 highways / 0 exceptions (S13).
 
 Upload description: `DESCRIPTION.md` (Appendix B of the storyboard with the verified numbers).
+
+## Fonts
+
+The renderer needs the DejaVu Sans, DejaVu Sans Mono (regular and bold) and Liberation Sans TTF
+files. `core.find_font_file` searches the usual font directories on Linux, macOS and Windows,
+`$LANGTON_FONT_DIR` (searched recursively), and matplotlib's bundled DejaVu copy if that package
+is installed. On a machine without them, install `fonts-dejavu` / `dejavu-fonts` or point
+`LANGTON_FONT_DIR` at a directory containing the files; a missing font raises a `FileNotFoundError`
+naming the file and the directories searched.

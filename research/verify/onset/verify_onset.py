@@ -5,7 +5,8 @@ Usage: python3 verify_onset.py N
 Simulates N steps of Langton's Ant from the empty grid with a dict grid,
 then recomputes onset, certification, highway, and pre-onset statistics.
 """
-import sys, math, json, collections
+import sys, math, json, collections, os
+HERE = os.path.dirname(os.path.abspath(__file__))
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 200000
 P = 104
 
@@ -145,6 +146,6 @@ json.dump({"N": N, "s": s, "mismatches": mism, "s_state": s_state, "D": D, "bbox
            "m1": m1, "m20_first": m20_first, "m20_perm": m20_perm, "last_old": last_old,
            "turn_string": ps, "offsets": offs, "argmax": argmax, "maxr2": maxr2,
            "pos_s": pos[s], "dir_s": "NESW"[dirs[s]]},
-          open(f"/home/user/Claude-experiment/research/verify/onset/my_{N}.json", "w"), indent=1)
+          open(os.path.join(HERE, f"my_{N}.json"), "w"), indent=1)
 # dump my turn string for diffing against the finder's
-open(f"/home/user/Claude-experiment/research/verify/onset/my_turns_{N}.txt", "w").write(tstr[1:] + "\n")
+open(os.path.join(HERE, f"my_turns_{N}.txt"), "w").write(tstr[1:] + "\n")

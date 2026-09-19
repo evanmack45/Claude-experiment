@@ -8,8 +8,8 @@ Usage: python3 analyze.py   (run from anywhere; paths are absolute)
 import csv, json, os, glob, subprocess, statistics, sys
 import numpy as np
 
-D = '/home/user/Claude-experiment/research/random'
-R = '/home/user/Claude-experiment/research/results'
+D = os.path.dirname(os.path.abspath(__file__))
+R = os.path.join(D, '..', 'results')
 KS = [5, 8, 12, 16, 24, 32, 48, 64]
 PS = [0.1, 0.25, 0.5, 0.75, 0.9]
 SEED_MAIN = 20260919
@@ -248,13 +248,13 @@ def main():
         'notes': [
             'Main sweep: 8 k-values x 5 densities x 10000 samples = 400000 configurations, every one certified (see totals).',
             'Onset statistics are over certified samples only (all samples in every cell were certified, so this is the full cell).',
-            'For small boxes (k<=12) the onset distribution resembles the empty-grid case (s=9977 for the empty grid); for large k the onset is dominated by the time the ant needs to leave the random box, which grows roughly like k^2 (diffusive exit): see scaling fits.',
+            'For small boxes (k<=12) the onset distribution resembles the empty-grid case (s=9977 for the empty grid); for large k the onset is dominated by the time the ant needs to leave the random box; the fitted median grows about like k^1.14 over k=64..512 at p=0.5 (far slower than a diffusive k^2), a finite-range fit, not an asymptotic law: see scaling fits.',
             'median uses numpy.median (average of the two middle values for even counts); percentiles use the lower-order statistic.',
         ],
     }
     if fit_scale:
         result['notes'].append('Scaling verdict: over k=64..512 at p=0.5 the median onset grows as k^%.2f (least squares on logs), i.e. as N^%.2f in the number of black cells N=k^2 p -- roughly the square root of N, far below linear in N and nowhere near exponential: the data suggest polynomial (in fact sub-linear in N, near-linear in k) growth of the typical onset.' % (fit_scale['exponent'], scale_section['fit_median_vs_n_black_k_ge_64']['exponent']))
-        result['notes'].append('Even the per-cell maximum over 10000 samples grows only from 1.7e5 (k=5) to 1.3e6 (k=512) steps; no run in any sweep came within a factor 15 of the 2e7 step cap.')
+        result['notes'].append('Even the per-cell maximum over 10000 samples grows only from 1.7e5 (k=5) to 1.3e6 (k=512) steps; the longest run in any sweep used 1,337,591 of the 2e7-step cap (6.7%).')
     json.dump(result, open(os.path.join(R, 'random.json'), 'w'), indent=1)
 
     # ---- console summary

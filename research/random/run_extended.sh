@@ -5,8 +5,7 @@
 #   pfine: k=32, p from 0.05 to 0.95 step 0.05, 10000 samples each, seed 20260922
 # Outputs go to out/ext/, out/scale/, out/pfine/ (uint32 onset lists + JSON summaries).
 set -e
-D=/home/user/Claude-experiment/research/random
-cd "$D"
+cd "$(dirname "$0")"
 CAP=20000000
 mkdir -p out/ext out/scale out/pfine
 rm -f out/ext/*_summary.jsonl out/scale/*_summary.jsonl out/pfine/*_summary.jsonl

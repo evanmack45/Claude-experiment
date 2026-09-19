@@ -2,7 +2,7 @@
 """Verifier: byte-for-byte comparison of my re-run onset lists (out/{ext,scale,pfine}/*.u32) with the
 finder's (research/random/out/{ext,scale,pfine}/*.u32), plus recomputation of C7/C8/C12 numbers from MY lists."""
 import glob, os, json, numpy as np
-F = '/home/user/Claude-experiment/research/random/out'; V = '/home/user/Claude-experiment/research/verify/random/out'
+_H = os.path.dirname(os.path.abspath(__file__)); F = os.path.join(_H, '..', '..', 'random', 'out'); V = os.path.join(_H, 'out')
 def median(a):
     a = sorted(a); n = len(a); return a[n//2] if n % 2 else (a[n//2-1] + a[n//2]) / 2
 tot = 0; same = 0; total_n = 0; allsum = {}

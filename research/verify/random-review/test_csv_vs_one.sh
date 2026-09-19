@@ -2,7 +2,7 @@
 # Compares rows written by the batch 'run' mode (procA/procB.csv, produced with 10000 samples in one process)
 # against a fresh single-sample './randexp one' run for a few (k,p,idx), including the last sample of a cell.
 # Any difference would indicate stale grid state between configurations.
-R=/home/user/Claude-experiment/research/random
+R="$(cd "$(dirname "$0")/../../random" && pwd)"
 fail=0
 for spec in "5 0.5 0" "5 0.5 9999" "64 0.9 9999" "64 0.75 4491" "32 0.1 5000" "8 0.9 7744"; do
   set -- $spec

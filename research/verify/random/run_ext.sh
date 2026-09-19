@@ -1,7 +1,7 @@
 #!/bin/sh
 # Verifier's full re-run of the finder's three aggregate-only sweeps with mysim (2 processes).
 set -e
-D=/home/user/Claude-experiment/research/verify/random
+D="$(cd "$(dirname "$0")" && pwd)"
 cd "$D"
 mkdir -p out/ext out/scale out/pfine
 rm -f out/ext/* out/scale/* out/pfine/*

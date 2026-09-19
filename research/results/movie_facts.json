@@ -397,8 +397,10 @@
   },
   "scaling_exponent_median_vs_k_k64_to_512": 1.138,
   "scaling_exponent_median_vs_nblack": 0.569,
-  "caveat": "Seeds 20260920-22 are the main-sweep RNG stream shifted by 1-3 outputs (seed multiplier equals the splitmix64 increment); all 4,730,000 configurations are distinct valid Bernoulli(p) boxes but the sweeps are not independent replicates.",
-  "source": "research/results/random.json"
+  "caveat": "total_tested counts draws (runs), not distinct patterns: the 560,000 5x5 draws contain 327,611 distinct patterns and the 560,000 8x8 draws 553,399, so at most about 4,491,000 of the 4,730,000 draws are distinct configurations. Seeds 20260920-22 are the main-sweep RNG stream shifted by 1-3 outputs (seed multiplier equals the splitmix64 increment); all 4,730,000 configurations are distinct valid Bernoulli(p) boxes but the sweeps are not independent replicates.",
+  "source": "research/results/random.json",
+  "fraction_faster_than_empty_grid_all_sweeps": 0.6637924,
+  "fraction_faster_than_empty_grid_note": "main_sweep.fraction_faster_than_empty_grid (0.674) is over the 400,000 main-sweep draws; pooled over all 4,730,000 draws the fraction is 0.664."
  },
  "adversarial": {
   "total_runs": 3484889,

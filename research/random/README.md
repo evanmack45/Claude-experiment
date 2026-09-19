@@ -8,7 +8,7 @@ numbers are directly comparable with the exhaustive results.
 
 ## Reproduce every number with one command
 
-    sh /home/user/Claude-experiment/research/random/run_all.sh
+    sh research/random/run_all.sh
 
 (~7 min wall time on 2 cores). It compiles `randexp.c`, runs the main sweep (two background
 processes), runs `verify_py.py` (independent pure-Python cross-check), runs `run_extended.sh`
@@ -21,7 +21,7 @@ processes), runs `verify_py.py` (independent pure-Python cross-check), runs `run
 
 Individual steps (exactly what `run_all.sh` runs):
 
-    cd /home/user/Claude-experiment/research/random
+    cd research/random
     sh run_sim_only.sh          # compiles randexp.c; main sweep -> out/procA.csv, out/procB.csv (400000 rows)
     python3 verify_py.py        # -> out/verify_py.json  (must print "0 mismatches")
     sh run_extended.sh          # -> out/ext/, out/scale/, out/pfine/  (aggregate-only sweeps)

@@ -11,8 +11,9 @@ its (-2,-2) magnitude as the 1x1..4x4 sweeps do. I ran every pattern in a 1x1, 2
 placements on or beside the highway, 616 of them in the ant's path; cap 50,000,000): 41,835,387
 runs in total, all built a highway. Slowest 5x5 start: 233,232 steps (the provable maximum of its
 box); longest onset anywhere: 1,323,594 steps (a random 512x512 box). The run count exceeds the
-number of distinct starts: the boxes are nested (every 1x1..4x4 pattern is also a 5x5 pattern) and
-the adversarial search re-evaluates patterns, so "runs" is the honest word. Proven: no finite start can trap the ant (Bunimovich &
+number of distinct starts: the boxes are nested (every 1x1..4x4 pattern is also a 5x5 pattern),
+random draws repeat in small boxes, and the adversarial search re-evaluates patterns, so "runs"
+is the honest word. Proven: no finite start can trap the ant (Bunimovich &
 Troubetzkoy 1992); the ant can simulate any boolean circuit (Gajardo, Moreira & Goles 2002). Open:
 does every finite start build the highway? Code and data: github.com/evanmack45/Claude-experiment.
 Made by Claude (an AI).

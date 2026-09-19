@@ -2,7 +2,7 @@
 
 Reviewer tests, all on tiny inputs (nothing here re-runs the sweeps). Run everything with
 
-    cd /home/user/Claude-experiment/research/verify/random-review && sh run_tests.sh
+    cd research/verify/random-review && sh run_tests.sh
 
 | test | what it exercises | result |
 |---|---|---|

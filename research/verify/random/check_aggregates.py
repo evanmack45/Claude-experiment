@@ -4,8 +4,9 @@ finder's raw outputs (procA/procB.csv, results/random_samples.csv, out/*/ *.u32)
 (numpy only for lstsq; medians/percentiles by explicit sorting)."""
 import csv, json, glob, os, math
 import numpy as np
-F = '/home/user/Claude-experiment/research/random'
-R = '/home/user/Claude-experiment/research/results'
+_H = os.path.dirname(os.path.abspath(__file__))
+F = os.path.join(_H, '..', '..', 'random')
+R = os.path.join(_H, '..', '..', 'results')
 rows = []
 for f in ('procA.csv', 'procB.csv'):
     for r in csv.reader(open(os.path.join(F, 'out', f))):

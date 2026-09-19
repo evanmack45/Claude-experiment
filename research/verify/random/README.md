@@ -6,7 +6,7 @@ written from `research/CONVENTIONS.md`.
 
 ## Reproduce everything (one command, ~10 min on 2 cores)
 
-    cd /home/user/Claude-experiment/research/verify/random && sh run_main.sh && sh run_ext.sh && \
+    cd research/verify/random && sh run_main.sh && sh run_ext.sh && \
     gcc -O3 -march=native -o mysim2 mysim.c -lm && python3 compare_main.py && python3 compare_ext.py && \
     python3 check_aggregates.py && python3 check_rng.py && python3 soundness.py 200 12345 && \
     python3 soundness.py 1000 777 && python3 mypy_ant.py empty && python3 mypy_ant.py 64 0.75 20260919 4491 20000 && \
