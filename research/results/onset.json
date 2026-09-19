@@ -1,0 +1,339 @@
+{
+ "experiment": "onset",
+ "conventions": "CONVENTIONS.md",
+ "parameters": {
+  "initial_configuration": "empty grid",
+  "steps_simulated": 200000,
+  "period_tested": 104,
+  "grid": "dynamic byte grid, side 2*(2N/104)+512, origin centered, bounds guarded every step",
+  "simulator": "research/onset/ant.c (gcc -O2)",
+  "cross_check": "research/onset/verify_py.py (pure Python, first 15000 steps)"
+ },
+ "results": {
+  "onset_step_s": 9977,
+  "onset_definition": "smallest s>=0 with t[k]==t[k+104] for all k>=s+1 (k+104<=N); t[s]!=t[s+104]",
+  "t_at_s": "L",
+  "t_at_s_plus_104": "R",
+  "alternative_onset_numbers": {
+   "periodic_from_step_s_inclusive_reading": 9978,
+   "first_step_of_periodic_turns": 9978,
+   "state_periodicity_onset_k_min_pos_dir": 9977,
+   "last_step_reading_a_cell_modified_before_onset": 10183,
+   "first_step_after_which_only_fresh_cells_are_read": 10184,
+   "first_step_ant_strictly_outside_pre_onset_bbox_in_travel_direction": 11390,
+   "step_margin_20_first_reached": 12336,
+   "step_margin_20_permanent": 12680
+  },
+  "certification": {
+   "periods_verified_exact_104_periodicity": 1826,
+   "turn_mismatches_after_s_in_simulated_range": 0,
+   "bbox_cells_modified_before_step_s_plus_1": {
+    "xmin": -19,
+    "xmax": 29,
+    "ymin": -22,
+    "ymax": 22,
+    "width": 49,
+    "height": 45
+   },
+   "ant_at_step_s": {
+    "x": -15,
+    "y": 10,
+    "dir": "W"
+   },
+   "highway_direction": "-x,-y",
+   "escape_step_margin_ge_20_both_coords_first_reached": 12336,
+   "escape_step_margin_ge_20_both_coords_permanent": 12680,
+   "margin_at_escape_step": {
+    "x": 47,
+    "y": 20
+   },
+   "per_period_min_margin_grows_by_2_each_period": true,
+   "margin_never_below_20_after_escape_step_within_N": true,
+   "ant_never_touches_pre_onset_cell_after_escape_step_within_N": true,
+   "argument": "From step m20 on, every later position lies on the 104-periodic strip (offsets 'period_offsets' translated by multiples of the displacement (-2,-2)), whose perpendicular extent is bounded; the strip moves away from the bbox monotonically so no previously modified cell is ever read again, hence the periodic turn sequence continues forever."
+  },
+  "highway": {
+   "period": 104,
+   "displacement_per_period": {
+    "dx": -2,
+    "dy": -2
+   },
+   "direction_at_period_starts": [
+    "W"
+   ],
+   "turns_per_period": {
+    "R": 58,
+    "L": 46
+   },
+   "turn_string_104": "LRLLRRRRLLRLLRRRRLLRRRRLLRLRRRRLRLLLLRRRRLRRLRRRRLLLLRLRRRRLRRRRLLLLRLRRRRLRLLRRLLLLRRLLRRRRLLRRLRLLRLLR",
+   "turn_string_start_step": 9978,
+   "period_offsets_relative_to_period_start": [
+    [
+     -4,
+     -6
+    ],
+    [
+     -4,
+     -5
+    ],
+    [
+     -4,
+     -2
+    ],
+    [
+     -4,
+     -1
+    ],
+    [
+     -3,
+     -7
+    ],
+    [
+     -3,
+     -6
+    ],
+    [
+     -3,
+     -5
+    ],
+    [
+     -3,
+     -4
+    ],
+    [
+     -3,
+     -3
+    ],
+    [
+     -3,
+     -2
+    ],
+    [
+     -3,
+     -1
+    ],
+    [
+     -3,
+     0
+    ],
+    [
+     -2,
+     -8
+    ],
+    [
+     -2,
+     -7
+    ],
+    [
+     -2,
+     -6
+    ],
+    [
+     -2,
+     -5
+    ],
+    [
+     -2,
+     -4
+    ],
+    [
+     -2,
+     -3
+    ],
+    [
+     -2,
+     -2
+    ],
+    [
+     -2,
+     -1
+    ],
+    [
+     -2,
+     0
+    ],
+    [
+     -1,
+     -8
+    ],
+    [
+     -1,
+     -7
+    ],
+    [
+     -1,
+     -6
+    ],
+    [
+     -1,
+     -5
+    ],
+    [
+     -1,
+     -4
+    ],
+    [
+     -1,
+     -3
+    ],
+    [
+     -1,
+     -2
+    ],
+    [
+     -1,
+     -1
+    ],
+    [
+     -1,
+     0
+    ],
+    [
+     0,
+     -7
+    ],
+    [
+     0,
+     -6
+    ],
+    [
+     0,
+     -5
+    ],
+    [
+     0,
+     -4
+    ],
+    [
+     0,
+     -3
+    ],
+    [
+     0,
+     -2
+    ],
+    [
+     0,
+     -1
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     -3
+    ],
+    [
+     1,
+     -2
+    ]
+   ],
+   "n_distinct_cells_touched_per_period": 40,
+   "perp_coordinate_range": {
+    "min": -7,
+    "max": 3,
+    "n_diagonal_lines": 11,
+    "definition": "perp = sx*dx - sy*dy with (sx,sy)=sign(displacement); each integer value is one lattice diagonal line x-y=const (spacing 1/sqrt(2) cell); the strip occupies n_diagonal_lines consecutive lines, geometric width (n-1)/sqrt(2) = 7.07 cell widths"
+   },
+   "along_coordinate_range": {
+    "min": 0,
+    "max": 10
+   },
+   "strip_width_cells_perpendicular_bbox": {
+    "dx_extent": 6,
+    "dy_extent": 9
+   },
+   "black_cells_added_per_period": 12,
+   "black_count_at_s": 715,
+   "black_count_at_s_plus_1040": 835,
+   "black_count_at_s_plus_2080": 955,
+   "trail_black_offsets_per_period_relative_to_ant_at_period_start": [
+    [
+     9,
+     12
+    ],
+    [
+     10,
+     11
+    ],
+    [
+     10,
+     13
+    ],
+    [
+     11,
+     10
+    ],
+    [
+     11,
+     13
+    ],
+    [
+     12,
+     9
+    ],
+    [
+     12,
+     10
+    ],
+    [
+     12,
+     12
+    ],
+    [
+     13,
+     8
+    ],
+    [
+     14,
+     7
+    ],
+    [
+     15,
+     8
+    ],
+    [
+     15,
+     9
+    ]
+   ],
+   "trail_black_offsets_note": "offsets (dx,dy) from the ant position at a period start, for the 12 black cells left per period in the settled trail (canonicalized into the along-window [-24,-20)); the full trail is this set translated by multiples of (-2,-2)",
+   "trail_perp_lines_occupied": [
+    -7,
+    -6,
+    -5,
+    -3,
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  "pre_onset": {
+   "distinct_cells_visited_steps_0_to_s": 1376,
+   "distinct_cells_modified_steps_1_to_s": 1376,
+   "black_cells_at_onset": 715,
+   "bbox_at_onset": {
+    "xmin": -19,
+    "xmax": 29,
+    "ymin": -22,
+    "ymax": 22,
+    "width": 49,
+    "height": 45
+   },
+   "max_euclid_distance_from_origin_steps_0_to_s": 34.669872,
+   "max_euclid_distance_step": 8934,
+   "max_chebyshev_distance": 29,
+   "max_manhattan_distance": 48
+  }
+ },
+ "notes": [
+  "Coordinates: x East, y North; directions N=(0,+1),E,S,W; step count = number of rule applications.",
+  "traj[k] = ant (x,y,dir) after k steps; the cell read at step k is traj[k-1].",
+  "Cells 'modified before step s+1' = positions after steps 0..s-1 (each step flips the cell the ant stands on).",
+  "Reproduce: cd research/onset && make all (see README.md)."
+ ]
+}

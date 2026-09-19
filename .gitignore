@@ -8,3 +8,16 @@ movie/frames/
 movie/build/
 *.wav
 .venv/
+# intermediate research data and compiled simulators (sources + results JSON are kept)
+research/*/out/
+research/*/out*/
+research/verify/*/out/
+research/verify/*/out*/
+research/**/*.csv
+!research/results/*.csv
+research/onset/ant
+research/exhaustive/exhaust
+research/random/randexp
+research/adversarial/ant
+research/adversarial/antsim
+research/verify/**/a.out
