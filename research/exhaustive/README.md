@@ -70,6 +70,11 @@ step 12,783 instead of 12,336) and the onset step s is unaffected, so the strict
 reproduce the default onset histograms exactly; `compare_strict.py` checks that and writes
 `research/results/exhaustive_strict.json`.
 
+Result of the strict pass (2026-09-19): all 2 + 16 + 512 + 65,536 + 33,554,432 configurations
+certified strictly, 0 cap / boundary / non-traveling runs, every displacement exactly (+-2,+-2),
+onset histograms bit-identical to the default pass for every k, latest strict certification step
+236,323 (k = 5, 938 s on two cores).
+
 Also fixed after the review: a run that reaches the cap while periodic but still waiting for
 its escape margin is now reported as a cap hit (status 1), not as "periodic but not traveling"
 (status 3, now reserved for a zero displacement component). No published run was affected

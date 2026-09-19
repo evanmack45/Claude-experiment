@@ -11,8 +11,9 @@ CAP = 5_000_000
 
 def load_summary(path):
     txt = open(path).read()
-    txt = re.sub(r'"argmax_cells": \[[^\]]*\]', '"argmax_cells": []', txt)
-    txt = re.sub(r'"argmin_cells": \[[^\]]*\]', '"argmin_cells": []', txt)
+    # the cell lists are nested ([[x,y],...]); blank them before parsing
+    txt = re.sub(r'"argmax_cells": \[(?:\[[^\]]*\],?)*\]', '"argmax_cells": []', txt)
+    txt = re.sub(r'"argmin_cells": \[(?:\[[^\]]*\],?)*\]', '"argmin_cells": []', txt)
     return json.loads(txt)
 
 

@@ -143,7 +143,22 @@ bit-identical onset histogram; verifier 2 recomputed all statistics from the raw
 | 5 | 33,554,432 | 33,554,432 | 0 | 32 | 4250.45 | 2059.0 | 233232 | [(0,-2),(2,-2),(-2,-1),(-1,-1),(2,-1),(0,1),(2,1),(-2,2),(0,2),(1,2),(2,2)] |
 
 * Every certified run has displacement exactly (+-2,+-2) per 104 steps (the finder recorded
-  only the sign for k = 5; verifier 1's re-enumeration checked the full displacement).
+  only the sign for k = 5; verifier 1's re-enumeration and the strict pass below checked the
+  full displacement for every k = 5 configuration).
+* **Strict certificate (added after the adversarial review of the pull request).** The default
+  stopping rule checks the escape margin at a single position and never checks the heading, so
+  by itself it is not a proof that the periodic regime continues for ever. `exhaust.c` now has a
+  strict mode whose certificate is sufficient (heading periodicity, the 20-cell margin at every
+  one of the last 104 positions, and a period footprint narrower than the 20-period displacement;
+  the argument is in `research/exhaustive/README.md`, "Strict certificate"). `run_strict.sh`
+  re-ran every configuration for k = 1..5 under it: **all 33,620,498 configurations certified
+  strictly** (33,554,432 for k = 5; 0 cap, 0 boundary, 0 non-traveling, 0 with a displacement
+  other than (+-2,+-2)), the onset histograms are bit-identical to the default pass for every k,
+  and the latest strict certification step is 236,323 (k = 5; 217,138,628,114 steps, 938 s on two
+  cores). So the k = 5 maximum 233,232 rests on a certificate that is sufficient, not only on the
+  CONVENTIONS stopping rule: `research/results/exhaustive_strict.json`,
+  `research/results/histograms/`. The 128-entry ring buffer means the certificate is evaluated on
+  the exact positions of the last period, not on a reconstruction.
 * k = 5 shortest onset: s = 32, attained by exactly two configurations (indices 17781263 and
   17781279; the first has 12 black cells, direction -x,+y, certified at step 2216).
 * k = 5 most common exact onset: s = 266 (88,090 configurations); modal log-bin [2512, 3162)
@@ -301,6 +316,7 @@ marked (long) take minutes to tens of minutes.
 | exhaustive k = 1..5 (long, ~17 min for k=5 on 2 cores) | `sh exhaustive/run_all.sh` |
 | exhaustive stats from stored histograms (fast) | `python3 exhaustive/analyze.py` |
 | exhaustive independent re-enumeration (long) | `cd verify/exhaustive && sh run_all.sh` |
+| strict-certificate pass, k = 1..5 (long, ~16 min) | `sh exhaustive/run_strict.sh` (writes results/exhaustive_strict.json; histograms must match results/histograms/) |
 | max any-step coordinate 229 | `grep max_abs verify/exhaustive/out/k5/h0.sum verify/exhaustive/out/k5/h1.sum` |
 | k = 5 maximum 233232 in pure Python | `cd exhaustive && python3 naive.py 237232 0,-2 2,-2 -2,-1 -1,-1 2,-1 0,1 2,1 -2,2 0,2 1,2 2,2` |
 | k = 5 minimum 32 in pure Python | `cd exhaustive && python3 naive.py 5000 -2,-2 -1,-2 0,-2 1,-2 2,-1 0,0 2,0 -1,1 0,1 1,1 2,1 2,2` |

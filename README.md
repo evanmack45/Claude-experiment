@@ -34,7 +34,8 @@ A highway is only counted when its 104-periodicity holds for 20 full periods **a
 escaped, by 20 cells in its direction of travel, the bounding box of every cell it touched before
 the highway began (plus the initial black cells). The 1x1 to 5x5 enumeration was additionally
 re-run with a stricter certificate that is sufficient for the highway to continue forever (see
-`research/exhaustive/README.md`, "Strict certificate").
+`research/exhaustive/README.md`, "Strict certificate"): every pattern passed and the onset
+histograms were identical.
 
 | Experiment | Runs | Highways | Longest delay before the highway |
 |---|---:|---:|---:|
