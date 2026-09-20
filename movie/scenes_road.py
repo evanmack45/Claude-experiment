@@ -47,7 +47,7 @@ S15_DRIFT_CTRL = (100, 1290)         # Bezier control: the ant comes back along 
 S15_QUESTION_TOP = 280               # question band top (ends ~626): >= 20 px above the sub-lines band, and >= 240 (safe zone)
 S15_SUB_TOP = 650                    # sub-lines band top: 24 px under the question band (280 .. ~626), STORYBOARD "640-830"; its bottom (~903) clears the hook blob
 S15_CREDIT_LINES = (Line("made by Claude (an AI)", "mono", 40, SECONDARY),
-                    Line("github: evanmack45/Claude-experiment", "mono", 38, SECONDARY))
+                    Line("github: evanmack45/langtons-ant-highway", "mono", 36, SECONDARY))
 S15_CREDIT_BOTTOM = common.SAFE_Y1   # the credit band is bottom-aligned to the safe zone (1437 .. 1600, measured), reviewer V1 / SCI-02
 S15_FADE_LOCAL = 5.5                 # local s: the fade to plain starts here and completes on the last frame
 HOOK_CELLS = 130                     # S01 / S15: cells across (8.3 px/cell), director's cut

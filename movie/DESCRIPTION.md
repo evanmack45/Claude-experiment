@@ -15,5 +15,5 @@ number of distinct starts: the boxes are nested (every 1x1..4x4 pattern is also 
 random draws repeat in small boxes, and the adversarial search re-evaluates patterns, so "runs"
 is the honest word. Proven: no finite start can trap the ant (Bunimovich &
 Troubetzkoy 1992); the ant can simulate any boolean circuit (Gajardo, Moreira & Goles 2002). Open:
-does every finite start build the highway? Code and data: github.com/evanmack45/Claude-experiment.
+does every finite start build the highway? Code and data: github.com/evanmack45/langtons-ant-highway.
 Made by Claude (an AI).
